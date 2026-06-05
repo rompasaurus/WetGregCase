@@ -1,0 +1,394 @@
+"""
+WetGregCase — Two-Piece Snap-Fit Enclosure for the Dilder PCB
+=============================================================
+A parametric FreeCAD macro that builds a 2-piece case around the
+"Dilder Full PCB Rev 1" board, plus visual representations of the
+populated components (WeAct e-ink screen, LiPo battery, 5-way
+joystick, Raspberry Pi Pico W, USB-C, power switch).
+
+Design intent (from the user spec):
+  * The WeAct screen sits 11.4 mm above the TOP face of the PCB.
+  * The BACK side adds +2 mm beyond the tallest back-side component
+    to clear the Pico board edge and bolt heads.
+  * BACK PLATE: a shallow tray with an inward LIP that the PCB rests
+    on top of (PCB drops in, back face lands on the ledge).
+  * FRONT PLATE: a cover that wraps OUTSIDE the back plate walls and
+    SNAPS on via cantilever nibs that seat into recesses in the back
+    plate wall.
+
+All driving numbers live in the PARAMS dict below — edit and re-run.
+
+Coordinate frame (local, millimetres):
+  * X,Y origin = bottom-left corner of the board bounding box.
+    (KiCad board spans X 46.70..144.50, Y 45.988..88.00; we subtract
+     the min so the board sits at 0..97.8 in X and 0..42.012 in Y.)
+  * Z = 0 is the BOTTOM face of the PCB. PCB top face = +board_t.
+    Top-side parts (screen, Pico, USB-C, switch) are at +Z.
+    Back-side parts (battery, joystick) are at -Z.
+
+Run:  FreeCAD > Macro > Run, or `freecadcmd wetgreg_case.FCMacro`
+"""
+
+import math
+import os
+import FreeCAD as App
+import Part
+
+V = App.Vector
+GUI = App.GuiUp
+
+# =====================================================================
+# PARAMETERS  — edit these
+# =====================================================================
+P = {
+    # ---- Board (from KiCad: Dilder Full PCB Rev 1) ----
+    "board_w":        97.80,   # X size of board bbox
+    "board_h":        42.012,  # Y size of board bbox
+    "board_t":        1.60,    # PCB thickness
+    "board_r":        5.00,    # board corner radius
+
+    # ---- Headline clearances (user spec) ----
+    "screen_above":   11.40,   # WeAct screen front, mm above PCB TOP face
+    "back_extra":      2.00,   # +2 mm beyond tallest back part (Pico edge/bolts)
+
+    # ---- Case walls / fit ----
+    "wall":            2.00,   # back-plate wall thickness
+    "fwall":           2.00,   # front-plate wall thickness
+    "floor":           1.60,   # back-plate floor thickness
+    "ceil":            1.60,   # front-plate top (ceiling) thickness
+    "pcb_clear":       0.30,   # gap between PCB edge and pocket wall (per side)
+    "snap_clear":      0.20,   # gap between back outer wall and front inner wall
+
+    # ---- Lip the PCB rests on ----
+    "lip_w":           1.50,   # how far the ledge reaches under the PCB edge
+
+    # ---- Back-side component cavity ----
+    "batt_h":          5.00,   # LiPo body thickness (on back)
+    "joy_h":           5.00,   # joystick body height (on back)
+
+    # ---- Vertical joint between the two plates ----
+    "back_wall_top":   5.00,   # Z where back-plate walls end (above PCB top)
+    "front_overlap":   5.00,   # how far front walls descend past back_wall_top
+
+    # ---- Snap-fit nibs ----
+    "snap_n_long":     2,      # nibs per long wall
+    "snap_n_short":    1,      # nibs per short wall
+    "snap_w":          8.00,   # nib width (along wall)
+    "snap_proj":       0.80,   # nib projection inward (depth of catch)
+    "snap_h":          1.20,   # nib height (Z)
+    "snap_z":          2.50,   # nib centre Z (within the overlap band)
+
+    # ---- Screen window (active area exposed through front plate) ----
+    "scr_win_inset":   2.50,   # bezel: window edge inset from screen body edge
+
+    # ---- USB-C opening (right edge, +X) ----
+    "usb_cut_w":      11.00,   # Y width of opening
+    "usb_cut_z0":      1.30,   # Z bottom of opening
+    "usb_cut_z1":      5.20,   # Z top of opening
+
+    # ---- toggles ----
+    "build_components": True,   # build screen/battery/joystick/pico/etc.
+    "explode_z":        0.0,    # lift front plate by this for an exploded view
+}
+
+# Derived ------------------------------------------------------------
+BW, BH, BT, BR = P["board_w"], P["board_h"], P["board_t"], P["board_r"]
+C  = P["pcb_clear"]
+W  = P["wall"]
+back_cav = max(P["batt_h"], P["joy_h"]) + P["back_extra"]   # PCB bottom -> floor
+floor_bottom = -back_cav - P["floor"]
+screen_front_z = BT + P["screen_above"]
+front_top_z = screen_front_z                                  # outer top of front plate
+front_ceil_z = front_top_z - P["ceil"]
+
+doc_name = "WetGregCase"
+
+# =====================================================================
+# HELPERS
+# =====================================================================
+
+def rrect(x0, y0, dx, dy, z0, dz, r):
+    """Axis-aligned box with the 4 vertical edges filleted to radius r."""
+    b = Part.makeBox(dx, dy, dz, V(x0, y0, z0))
+    if r and r > 1e-6:
+        vedges = [e for e in b.Edges
+                  if abs(e.Vertexes[0].Point.z - e.Vertexes[1].Point.z) > 1e-6]
+        b = b.makeFillet(min(r, dx / 2 - 1e-3, dy / 2 - 1e-3), vedges)
+    return b
+
+
+def show(doc, shape, name, rgb=None, transp=0):
+    obj = doc.addObject("Part::Feature", name)
+    obj.Shape = shape
+    if GUI and obj.ViewObject is not None:
+        if rgb is not None:
+            obj.ViewObject.ShapeColor = rgb
+        if transp:
+            obj.ViewObject.Transparency = transp
+    return obj
+
+
+# =====================================================================
+# BUILD
+# =====================================================================
+
+# Fresh document
+if doc_name in [d.Name for d in App.listDocuments().values()]:
+    App.closeDocument(doc_name)
+doc = App.newDocument(doc_name)
+
+# --- snap nib X/Y positions (centres along each wall) -----------------
+def nib_centres(span, n):
+    """Evenly spaced centres along a wall of length `span`."""
+    return [span * (i + 1) / (n + 1) for i in range(n)]
+
+# Outer footprint of the BACK plate (front wraps just outside this)
+b_out_x0 = -(C + W)
+b_out_y0 = -(C + W)
+b_out_dx = BW + 2 * (C + W)
+b_out_dy = BH + 2 * (C + W)
+b_out_r  = BR + C + W
+
+# Snap nib world positions: (point on outer wall, axis)
+SNAP = []  # each: (cx, cy, wall)  wall in {'+x','-x','+y','-y'}
+for cx in nib_centres(BW, P["snap_n_long"]):
+    SNAP.append((cx, b_out_y0,            '-y'))
+    SNAP.append((cx, b_out_y0 + b_out_dy, '+y'))
+for cy in nib_centres(BH, P["snap_n_short"]):
+    SNAP.append((b_out_x0,            cy, '-x'))
+    SNAP.append((b_out_x0 + b_out_dx, cy, '+x'))
+
+
+# ---------------------------------------------------------------------
+# USB-C opening (shared cut through both plates, +X edge)
+# ---------------------------------------------------------------------
+# KiCad USB body Y[15.37..25.23] local -> centre ~20.30
+usb_cy = ((62.07 - 45.988) + (71.93 - 45.988)) / 2.0   # ~21.0
+usb_box = Part.makeBox(
+    (C + W + P["snap_clear"] + P["fwall"]) + 5.0,   # plenty deep in X
+    P["usb_cut_w"],
+    P["usb_cut_z1"] - P["usb_cut_z0"],
+    V(BW + C - 1.0, usb_cy - P["usb_cut_w"] / 2.0, P["usb_cut_z0"]),
+)
+
+
+# ---------------------------------------------------------------------
+# BACK PLATE
+# ---------------------------------------------------------------------
+def build_back_plate():
+    # 1. Solid outer block, floor bottom -> back wall top
+    outer = rrect(b_out_x0, b_out_y0, b_out_dx, b_out_dy,
+                  floor_bottom, P["back_wall_top"] - floor_bottom, b_out_r)
+
+    # 2. PCB pocket (board + clearance), from Z=0 up through the top -> open
+    pocket = rrect(-C, -C, BW + 2 * C, BH + 2 * C,
+                   0.0, P["back_wall_top"] - 0.0 + 1.0, BR + C)
+
+    # 3. Back-component cavity (board inset by lip_w), Z=-back_cav..0
+    lw = P["lip_w"]
+    cav = rrect(lw, lw, BW - 2 * lw, BH - 2 * lw,
+                -back_cav, back_cav, max(BR - lw, 0.5))
+
+    plate = outer.cut(pocket).cut(cav)
+
+    # 4. Snap recesses on the OUTER wall (front nibs seat here)
+    for (cx, cy, wall) in SNAP:
+        if wall in ('+y', '-y'):
+            rec = Part.makeBox(P["snap_w"] + 0.4, P["snap_proj"] + 0.6,
+                               P["snap_h"] + 0.6,
+                               V(cx - (P["snap_w"] + 0.4) / 2,
+                                 cy - (P["snap_proj"] + 0.6 if wall == '+y' else 0.0),
+                                 P["snap_z"] - (P["snap_h"] + 0.6) / 2))
+        else:
+            rec = Part.makeBox(P["snap_proj"] + 0.6, P["snap_w"] + 0.4,
+                               P["snap_h"] + 0.6,
+                               V(cx - (P["snap_proj"] + 0.6 if wall == '+x' else 0.0),
+                                 cy - (P["snap_w"] + 0.4) / 2,
+                                 P["snap_z"] - (P["snap_h"] + 0.6) / 2))
+        plate = plate.cut(rec)
+
+    # 5. USB-C opening
+    plate = plate.cut(usb_box)
+    return plate
+
+
+# ---------------------------------------------------------------------
+# FRONT PLATE  (cover that wraps outside + snaps on)
+# ---------------------------------------------------------------------
+def build_front_plate():
+    sc = P["snap_clear"]
+    fw = P["fwall"]
+    # inner face of front wall = back outer + snap_clear
+    f_in_x0 = b_out_x0 - sc
+    f_in_y0 = b_out_y0 - sc
+    f_in_dx = b_out_dx + 2 * sc
+    f_in_dy = b_out_dy + 2 * sc
+    f_in_r  = b_out_r + sc
+
+    f_out_x0 = f_in_x0 - fw
+    f_out_y0 = f_in_y0 - fw
+    f_out_dx = f_in_dx + 2 * fw
+    f_out_dy = f_in_dy + 2 * fw
+    f_out_r  = f_in_r + fw
+
+    wall_bottom = P["back_wall_top"] - P["front_overlap"]   # walls descend to here
+
+    # 1. Outer solid: wall_bottom -> front_top_z
+    outer = rrect(f_out_x0, f_out_y0, f_out_dx, f_out_dy,
+                  wall_bottom, front_top_z - wall_bottom, f_out_r)
+
+    # 2. Hollow it: remove the inner volume up to the ceiling
+    inner = rrect(f_in_x0, f_in_y0, f_in_dx, f_in_dy,
+                  wall_bottom - 1.0, (front_ceil_z) - (wall_bottom - 1.0), f_in_r)
+    plate = outer.cut(inner)
+
+    # 3. Screen window through the ceiling
+    #    Screen body local: X[12.90..84.90] Y[6.00..36.00]
+    sx0, sy0, sx1, sy1 = 12.90, 6.00, 84.90, 36.00
+    wi = P["scr_win_inset"]
+    win = rrect(sx0 + wi, sy0 + wi, (sx1 - sx0) - 2 * wi, (sy1 - sy0) - 2 * wi,
+                front_ceil_z - 1.0, P["ceil"] + 2.0, max(1.5 - wi, 0.3))
+    plate = plate.cut(win)
+
+    # 4. Snap nibs on the INNER wall face (project inward)
+    for (cx, cy, wall) in SNAP:
+        proj = P["snap_proj"]
+        if wall in ('+y', '-y'):
+            # inner face sits at b_out edge - sc (front) ; nib projects toward board
+            if wall == '+y':
+                y_face = b_out_y0 + b_out_dy + sc      # inner face of front +y wall
+                nib = Part.makeBox(P["snap_w"], proj, P["snap_h"],
+                                   V(cx - P["snap_w"] / 2, y_face - proj,
+                                     P["snap_z"] - P["snap_h"] / 2))
+            else:
+                y_face = b_out_y0 - sc
+                nib = Part.makeBox(P["snap_w"], proj, P["snap_h"],
+                                   V(cx - P["snap_w"] / 2, y_face,
+                                     P["snap_z"] - P["snap_h"] / 2))
+        else:
+            if wall == '+x':
+                x_face = b_out_x0 + b_out_dx + sc
+                nib = Part.makeBox(proj, P["snap_w"], P["snap_h"],
+                                   V(x_face - proj, cy - P["snap_w"] / 2,
+                                     P["snap_z"] - P["snap_h"] / 2))
+            else:
+                x_face = b_out_x0 - sc
+                nib = Part.makeBox(proj, P["snap_w"], P["snap_h"],
+                                   V(x_face, cy - P["snap_w"] / 2,
+                                     P["snap_z"] - P["snap_h"] / 2))
+        plate = plate.fuse(nib)
+
+    # 5. USB-C opening (same cut)
+    plate = plate.cut(usb_box)
+
+    if P["explode_z"]:
+        plate.translate(V(0, 0, P["explode_z"]))
+    return plate
+
+
+# ---------------------------------------------------------------------
+# COMPONENT VISUALS  (from KiCad placements; for fit-checking only)
+# ---------------------------------------------------------------------
+def build_components(doc):
+    # PCB ------------------------------------------------------------
+    pcb = rrect(0, 0, BW, BH, 0, BT, BR)
+    show(doc, pcb, "PCB", (0.05, 0.45, 0.15))
+
+    # WeAct e-ink screen --------------------------------------------
+    sx0, sy0, sx1, sy1 = 12.90, 6.00, 84.90, 36.00     # body 72x30
+    mod_t = 4.40
+    mod = rrect(sx0, sy0, sx1 - sx0, sy1 - sy0,
+                screen_front_z - mod_t, mod_t, 1.5)
+    show(doc, mod, "Screen_Module", (0.93, 0.93, 0.94))
+    # active glass (white), slightly inset on the front face
+    gi = 2.0
+    glass = Part.makeBox(sx1 - sx0 - 2 * gi, sy1 - sy0 - 2 * gi, 0.6,
+                         V(sx0 + gi, sy0 + gi, screen_front_z - 0.6))
+    show(doc, glass, "Screen_Glass", (0.98, 0.98, 0.98))
+    # M2 standoffs (KiCad holes local): (2.40,8.61)(2.40,33.01)(68.80,8.61)(68.80,33.01)
+    for (hx, hy) in [(2.40, 8.61), (2.40, 33.01), (68.80, 8.61), (68.80, 33.01)]:
+        post = Part.makeCylinder(1.0, (screen_front_z - mod_t) - BT,
+                                 V(hx, hy, BT))
+        show(doc, post, "Screen_Standoff", (0.75, 0.75, 0.78))
+
+    # LiPo battery (BACK side) --------------------------------------
+    bx0, by0, bx1, by1 = 13.80, 1.51, 67.80, 36.51     # 54x35
+    bat = rrect(bx0, by0, bx1 - bx0, by1 - by0, -P["batt_h"], P["batt_h"], 2.0)
+    show(doc, bat, "Battery_LiPo", (0.20, 0.20, 0.55))
+
+    # Joystick 5-way (BACK side) ------------------------------------
+    jx0, jy0, jx1, jy1 = 74.80, 15.66, 88.26, 25.86    # 13.46x10.2
+    joy = Part.makeBox(jx1 - jx0, jy1 - jy0, P["joy_h"],
+                       V(jx0, jy0, -P["joy_h"]))
+    show(doc, joy, "Joystick", (0.12, 0.12, 0.12))
+    jcx, jcy = (jx0 + jx1) / 2, (jy0 + jy1) / 2
+    cap = Part.makeCylinder(2.0, 2.0, V(jcx, jcy, -P["joy_h"] - 2.0))
+    show(doc, cap, "Joystick_Cap", (0.10, 0.10, 0.10))
+
+    # Raspberry Pi Pico W (TOP side) --------------------------------
+    pcx, pcy = 30.4, 20.79
+    pico = Part.makeBox(51.0, 21.0, 1.0, V(pcx - 25.5, pcy - 10.5, BT))
+    show(doc, pico, "Pico_W", (0.10, 0.30, 0.12))
+    pcomp = Part.makeBox(47.0, 17.0, 2.2, V(pcx - 23.5, pcy - 8.5, BT + 1.0))
+    show(doc, pcomp, "Pico_Components", (0.10, 0.10, 0.10))
+
+    # USB-C connector (TOP, +X edge) --------------------------------
+    usb = Part.makeBox(8.9, 7.3, 3.3, V(BW - 8.0, usb_cy - 3.65, BT))
+    show(doc, usb, "USB_C", (0.70, 0.70, 0.72))
+
+    # Power slide switch SW1 (TOP) ----------------------------------
+    swx0, swy0, swx1, swy1 = 46.35, 37.46, 54.75, 42.012
+    sw = Part.makeBox(swx1 - swx0, swy1 - swy0, 2.9, V(swx0, swy0, BT))
+    show(doc, sw, "Power_Switch", (0.85, 0.82, 0.30))
+
+
+# =====================================================================
+# RUN
+# =====================================================================
+back = build_back_plate()
+front = build_front_plate()
+
+show(doc, back, "BackPlate", (0.30, 0.55, 0.85), transp=10)
+show(doc, front, "FrontPlate", (0.85, 0.55, 0.30), transp=30)
+
+if P["build_components"]:
+    build_components(doc)
+
+doc.recompute()
+
+# --- save + export ---------------------------------------------------
+here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+proj = os.path.dirname(here) if os.path.basename(here) == "freecad" else here
+fcstd = os.path.join(here, "WetGregCase.FCStd")
+doc.saveAs(fcstd)
+
+exp_dir = os.path.join(proj, "exports")
+try:
+    os.makedirs(exp_dir, exist_ok=True)
+    Part.export([doc.getObject("BackPlate")],  os.path.join(exp_dir, "WetGregCase_BackPlate.step"))
+    Part.export([doc.getObject("FrontPlate")], os.path.join(exp_dir, "WetGregCase_FrontPlate.step"))
+except Exception as e:
+    App.Console.PrintWarning("STEP export skipped: %s\n" % e)
+
+# --- report ----------------------------------------------------------
+print("=" * 60)
+print("WetGregCase built.")
+print("  Board            : %.2f x %.2f x %.2f mm (R%.1f)" % (BW, BH, BT, BR))
+print("  Screen front Z   : %.2f  (%.2f above PCB top)" % (screen_front_z, P["screen_above"]))
+print("  Back cavity      : %.2f mm  (max back part %.1f + extra %.1f)" %
+      (back_cav, max(P["batt_h"], P["joy_h"]), P["back_extra"]))
+print("  Overall height   : %.2f mm  (Z %.2f .. %.2f)" %
+      (front_top_z - floor_bottom, floor_bottom, front_top_z))
+print("  Back plate bbox  : %.2f x %.2f mm" % (back.BoundBox.XLength, back.BoundBox.YLength))
+print("  Front plate bbox : %.2f x %.2f mm" % (front.BoundBox.XLength, front.BoundBox.YLength))
+print("  Snap nibs        : %d" % len(SNAP))
+print("  Saved            : %s" % fcstd)
+print("=" * 60)
+
+if GUI:
+    try:
+        import FreeCADGui as Gui
+        Gui.activeDocument().activeView().viewIsometric()
+        Gui.SendMsgToActiveView("ViewFit")
+    except Exception:
+        pass
