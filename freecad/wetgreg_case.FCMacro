@@ -70,8 +70,10 @@ P = {
     #      covers them (and the 8-pin connector on the screen's right side) ----
     "scr_hole_x0": 2.40, "scr_hole_x1": 68.80,   # screw-hole centres (local X)
     "scr_hole_y0": 8.90, "scr_hole_y1": 33.30,   # screw-hole centres (local Y)
-    "scr_hole_r":  2.80,   # screw-hole pad radius (cover to here)
+    "scr_hole_r":  2.80,   # screw-hole pad radius (cover to here) — sets window X
     "win_margin":  0.40,   # extra overlap past the pads
+    "scr_pcb_y0":  6.10, "scr_pcb_y1": 36.10,   # screen PCB Y edges
+    "win_y_gap":   1.00,   # window Y stops 1 mm shy of the screen PCB edge each side
 
     # ---- USB-C opening (+X) ----
     "usb_cy": 21.00, "usb_w": 10.00, "usb_z0": 0.40, "usb_z1": 5.00,
@@ -244,10 +246,10 @@ def build_front_cover():
     # screen window — sized inside the 4 screw holes (fully covered), which also
     # tucks the right-side 8-pin connector (X>=67.1) under the frame
     m = P["scr_hole_r"] + P["win_margin"]
-    wx0 = P["scr_hole_x0"] + m
+    wx0 = P["scr_hole_x0"] + m                  # X: inside the corner screw holes
     wx1 = P["scr_hole_x1"] - m
-    wy0 = P["scr_hole_y0"] + m
-    wy1 = P["scr_hole_y1"] - m
+    wy0 = P["scr_pcb_y0"] + P["win_y_gap"]      # Y: 1 mm shy of the screen PCB edges
+    wy1 = P["scr_pcb_y1"] - P["win_y_gap"]      #    (corner holes still covered by the X frame)
     solid = solid.cut(rrect(wx0, wy0, wx1 - wx0, wy1 - wy0,
                             front_outer_z - 1.0, W + 2.0, 1.0))
 
