@@ -45,16 +45,15 @@ PARAMS = [
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
     ("wall",       2.00, "Wall thickness"),
-    ("ext_xmin",   0.60, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
+    ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
     ("corner_r",   7.30, "Outer corner radius (board_r+clear+wall)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 11.40,"Screen front face below PCB bottom (front outer Z)"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
-    # --- Seam / backplate cap (clips around the front plate, flush) ---
-    ("ftop",       5.50, "Front-plate top / seam Z (above the Pico 5.26)"),
-    ("back_above", 2.00, "Backplate cap height above the seam"),
-    ("back_skin",  1.20, "Backplate closed-top skin"),
-    ("back_curve", 6.00, "Back-edge curve radius"),
+    # --- Seam / backplate (deep cover that clips onto the front lid) ---
+    ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
+    ("back_above", 7.50, "Backplate depth above the seam (houses USB-C + Pico)"),
+    ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
@@ -333,14 +332,7 @@ def build_front_cover():
     # 7. round joystick boss (5 mm, annular fill around the hole)
     add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
             PV["joy_boss_d"]/2, PV["joy_pad_th"])
-    # 8. USB-C opening (+X)
-    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
-            W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
-            Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
-    # 9. power-switch slot (-Y)
-    sub_box(body, "Cut_FC_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
-            PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
-            L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
+    # (USB-C + switch live in the backplate now)
     # 10. battery-connector gap (CN1, -Y): relieve only the LEDGE/interior, NOT the
     #     outer wall (start the cut at the wall inner so the wall stays solid)
     sub_box(body, "Cut_FC_BatteryGap",
@@ -362,28 +354,38 @@ def build_front_cover():
     return body
 
 # =====================================================================
-# BACKPLATE  (thin lid that clips around the front plate, flush)
+# BACKPLATE  (deep cover: houses USB-C + Pico, curved closed back, clips on)
 # =====================================================================
 def build_backplate():
     body = DOCO.addObject("PartDesign::Body", "BackPlate")
-    # 1. cap block seam -> base_top
+    # 1. block seam(0) -> base_top
     sk = rect_sketch(body, "Sk_BP", seam_z, OX0, OY0, OX1, OY1)
     pad = body.newObject("PartDesign::Pad", "Pad_BP")
     pad.Profile = sk
     pad.Length = base_top_z - seam_z
     pad.setExpression("Length", SP("back_above"))
     DOCO.recompute()
-    # 2. corner fillet
+    # 2. corner fillet  3. back-edge curve (same as the front)
     last = fillet(body, "Fillet_BP_Corners", pad, find_edges(pad, "vertical"),
                   PV["corner_r"], SP("corner_r"))
-    # 3. hollow the cap (closed top skin + walls, open toward the front plate)
-    sub_box(body, "Cut_BP_Hollow", IX0, IY0, seam_z-1.0, IX1-IX0, IY1-IY0,
-            (base_top_z - PV["back_skin"]) - (seam_z-1.0))
-    # 4. lap relief (frame): receives the front-plate tongue
+    te = find_edges(last, "top")
+    if te:
+        last = fillet(body, "Fillet_BP_Back", last, te, PV["back_curve"], SP("back_curve"))
+    # 4. constant-wall curved shell, open at the seam (toward the front plate)
+    last = shell_open_at(body, "Shell_BP", last, seam_z)
+    # 5. lap relief (frame): receives the front-plate tongue
     frame_pocket(body, "Cut_BP_Relief", seam_z, PV["lap"], O_REL, O_IN, SP("lap"))
-    # 5. snap groove (receives the front-plate bead)
+    # 6. snap groove (receives the front-plate bead)
     frame_pocket(body, "Cut_BP_Groove", bead_z, PV["bead_h"],
                  O_REL + PV["bead_proj"], O_REL, SP("bead_h"))
+    # 7. USB-C opening (+X)
+    sub_box(body, "Cut_BP_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
+            W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
+            Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
+    # 8. power-switch slot (-Y)
+    sub_box(body, "Cut_BP_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
+            PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
+            L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
     return body
 
 # =====================================================================
