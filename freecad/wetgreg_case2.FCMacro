@@ -1,0 +1,407 @@
+"""
+WetGregCase — Two-Piece Slim Enclosure for the Dilder PCB
+=========================================================
+Parametric FreeCAD macro.
+
+Orientation (matches the KiCad STEP export; Z=0 is the PCB bottom face):
+  * SCREEN side  = -Z  -> the FRONT lid. WeAct screen + 5-way joystick.
+  * PICO side    = +Z  -> the back.
+
+Two parts:
+  * BACKPLATE (board carrier) — wraps the board edge; the PCB rests ON TOP of a
+    shelf at its lower edge (shelf under the board). Only as tall as the USB-C
+    connector on the Pico side; open centre so it never touches a component
+    (the unpopulated header pins are stripped from the imported model).
+  * FRONT COVER (screen lid) — sits below, holds the screen + joystick. Its
+    outer face MEETS the top of the screen (Z = -screen_top). Aggressively
+    curved front edges so it reads thinner than it is. A 5 mm-thick boss around
+    the joystick leaves room for the solar-panel connector + thumbpiece.
+
+The two halves meet at a FLUSH lap joint just below the board (the shelf plane);
+outer footprints are identical so the sides are flush.
+
+Coordinate frame (LOCAL, mm):  local = (KiCad_X - 46.70, KiCad_StepY + 88.0, Z)
+
+Run:  FreeCAD > Macro > Run,  or  `freecadcmd wetgreg_case.FCMacro`
+"""
+
+import os
+import FreeCAD as App
+import Part
+
+V = App.Vector
+GUI = App.GuiUp
+
+# =====================================================================
+# PARAMETERS
+# =====================================================================
+P = {
+    # ---- Board ----
+    "board_w": 97.80, "board_h": 42.012, "board_t": 1.60, "board_r": 5.00,
+
+    # ---- Screen side (-Z, front lid) ----
+    "screen_top":     11.40,   # screen front face below PCB bottom
+    "screen_model_top": 8.64,  # screen position in the STEP (for the shift)
+    "front_floor":     1.20,   # thin front frame around the window
+    "bezel":           2.50,   # frame overlap (covers the screen's corner screw holes)
+    "front_curve_r":   6.00,   # aggressive front-edge curve (auto-reduced if needed)
+
+    # ---- Pico side (+Z, backplate) — CLOSED back panel ----
+    "base_above":      5.40,   # backplate outer face above PCB top (clears Pico 5.26 + back skin)
+    "back_th":         1.20,   # closed back-panel thickness
+
+    # ---- Walls / fit ----
+    "wall":            2.00,
+    "clear":           0.30,
+    "ext_xmin":        3.00,   # extend case on -X so the front wraps the screen + screw holes
+
+    # ---- PCB shelf (on the backplate, UNDER the board) ----
+    "shelf_w":         1.60,   # shelf reach under the board edge
+    "shelf_th":        1.50,   # shelf thickness (also the seam drop below the board)
+
+    # ---- Flush lap joint (at the shelf plane, just below the board) ----
+    "lap":             1.50, "tongue_t": 1.00, "lap_fit": 0.20,
+
+    # ---- Snap detents ----
+    "snap_n_long": 2, "snap_n_short": 1, "snap_w": 7.00,
+    "snap_proj": 0.50, "snap_h": 1.00,
+
+    # ---- Screen window — driven by the 4 M2 screw holes so the frame fully
+    #      covers them (and the 8-pin connector on the screen's right side) ----
+    "scr_hole_x0": 2.40, "scr_hole_x1": 68.80,   # screw-hole centres (local X)
+    "scr_hole_y0": 8.90, "scr_hole_y1": 33.30,   # screw-hole centres (local Y)
+    "scr_hole_r":  2.80,   # screw-hole pad radius (cover to here) — sets window X
+    "win_margin":  0.40,   # extra overlap past the pads
+    "scr_pcb_y0":  6.10, "scr_pcb_y1": 36.10,   # screen PCB Y edges
+    "win_y_gap":   1.00,   # window Y stops 1 mm shy of the screen PCB edge each side
+
+    # ---- USB-C opening (+X) — tight to the connector (16.45..25.55, 0.67..4.89) ----
+    "usb_cy": 21.00, "usb_w": 9.70, "usb_z0": 0.50, "usb_z1": 5.00, "usb_r": 1.00,
+
+    # ---- Power-switch slot (-Y) — just the actuator travel (body 47.2..53.9) ----
+    "sw_x0": 47.50, "sw_x1": 53.50, "sw_z0": 1.00, "sw_z1": 3.30,
+
+    # ---- Joystick / thumbpiece (front, -Z) ----
+    "joy_cx": 81.55, "joy_cy": 21.30, "joy_hole_d": 12.00,
+    "thumb_od": 11.00, "thumb_h": 4.50, "thumb_dish_r": 12.00,
+    "thumb_dish_d": 0.60, "thumb_sock": 3.30, "thumb_sock_d": 3.50, "thumb_clr": 0.10,
+
+    # ---- round joystick boss (room for solar-panel connector) ----
+    "joy_boss_d": 20.0,   # boss outer dia (annular fill around the Oe12 hole)
+    "joy_pad_th": 5.00,   # boss thickness (front plate = 5 mm at the joystick)
+
+    # ---- Import ----
+    "import_assembly": True, "strip_headers": True, "shift_screen": True,
+    "assembly_step": "/home/rompasaurus/COdingProjects/Dilder-PCB/Case Design/Dilder_PCB_FullAssembly.step",
+
+    "explode_z": 0.0,
+}
+
+# Derived ------------------------------------------------------------
+BW, BH, BT, BR = P["board_w"], P["board_h"], P["board_t"], P["board_r"]
+C, W = P["clear"], P["wall"]
+front_outer_z = -P["screen_top"]                 # -11.4 (screen front face)
+front_floor_inner = front_outer_z + P["front_floor"]
+seam_z = -P["shelf_th"]                           # -1.5  (shelf bottom = flush lap line)
+shelf_top_z = 0.0                                 # board -Z face rests here
+base_top_z = BT + P["base_above"]                 # 4.9
+tongue_top = seam_z + P["lap"]                    # 0.0
+
+O_IN  = C
+O_TNG = C + P["tongue_t"]
+O_REL = C + P["tongue_t"] + P["lap_fit"]
+O_OUT = C + W
+
+doc_name = "WetGregCase"
+
+# =====================================================================
+# HELPERS
+# =====================================================================
+EXT = P["ext_xmin"]            # case extension on the -X side (screen wrap)
+
+def bnd(o):                    # CASE outline (board extended by EXT on -X)
+    return (-EXT - o, -o, BW + EXT + 2 * o, BH + 2 * o, max(BR + o, 0.3))
+
+def bnd_b(o):                  # BOARD outline (for the PCB shelf grip)
+    return (-o, -o, BW + 2 * o, BH + 2 * o, max(BR + o, 0.3))
+
+def rrect(x0, y0, dx, dy, z0, dz, r):
+    b = Part.makeBox(dx, dy, dz, V(x0, y0, z0))
+    if r and r > 1e-6:
+        ve = [e for e in b.Edges
+              if abs(e.Vertexes[0].Point.z - e.Vertexes[1].Point.z) > 1e-6]
+        b = b.makeFillet(min(r, dx / 2 - 1e-3, dy / 2 - 1e-3), ve)
+    return b
+
+def rring(o_out, o_in, z0, dz):
+    xo, yo, dxo, dyo, ro = bnd(o_out)
+    xi, yi, dxi, dyi, ri = bnd(o_in)
+    return rrect(xo, yo, dxo, dyo, z0, dz, ro).cut(
+        rrect(xi, yi, dxi, dyi, z0 - 1.0, dz + 2.0, ri))
+
+def shelf_ring(z0, dz):
+    # outer = CASE wall inner face (extended -X); inner = reaches under the BOARD edge
+    xo, yo, dxo, dyo, ro = bnd(O_IN)
+    xi, yi, dxi, dyi, ri = bnd_b(-P["shelf_w"])
+    return rrect(xo, yo, dxo, dyo, z0, dz, ro).cut(
+        rrect(xi, yi, dxi, dyi, z0 - 1.0, dz + 2.0, ri))
+
+def show(doc, shape, name, rgb=None, transp=0):
+    o = doc.addObject("Part::Feature", name)
+    o.Shape = shape
+    if GUI and o.ViewObject is not None:
+        if rgb is not None:
+            o.ViewObject.ShapeColor = rgb
+        if transp:
+            o.ViewObject.Transparency = transp
+    return o
+
+def nib_centres(span, n):
+    return [span * (i + 1) / (n + 1) for i in range(n)]
+
+SNAP = []
+for cx in nib_centres(BW + EXT, P["snap_n_long"]):
+    cx -= EXT
+    SNAP.append((cx, None, '-y')); SNAP.append((cx, None, '+y'))
+for cy in nib_centres(BH, P["snap_n_short"]):
+    SNAP.append((None, cy, '-x')); SNAP.append((None, cy, '+x'))
+
+def nib_box(wall, cx, cy, face_o, proj, pad=0.0):
+    sw = P["snap_w"] + 2 * pad
+    sh = P["snap_h"] + 2 * pad
+    zc = (seam_z + tongue_top) / 2.0
+    z0 = zc - sh / 2.0
+    if wall == '-y':
+        return Part.makeBox(sw, proj + pad, sh, V(cx - sw / 2, -face_o - proj, z0))
+    if wall == '+y':
+        return Part.makeBox(sw, proj + pad, sh, V(cx - sw / 2, BH + face_o - pad, z0))
+    if wall == '-x':
+        return Part.makeBox(proj + pad, sw, sh, V(-EXT - face_o - proj, cy - sw / 2, z0))
+    if wall == '+x':
+        return Part.makeBox(proj + pad, sw, sh, V(BW + face_o - pad, cy - sw / 2, z0))
+
+# =====================================================================
+# Document + shared cutters
+# =====================================================================
+if doc_name in [d.Name for d in App.listDocuments().values()]:
+    App.closeDocument(doc_name)
+doc = App.newDocument(doc_name)
+
+usb_box = Part.makeBox(W + 6.0, P["usb_w"], P["usb_z1"] - P["usb_z0"],
+                       V(BW + C - 1.0, P["usb_cy"] - P["usb_w"] / 2.0, P["usb_z0"]))
+# round the USB-C port corners (fillet the edges running along X)
+_ur = P.get("usb_r", 0.0)
+if _ur > 1e-6:
+    _xe = [e for e in usb_box.Edges
+           if abs(e.Vertexes[0].Point.x - e.Vertexes[1].Point.x) > 1e-6]
+    try:
+        usb_box = usb_box.makeFillet(min(_ur, P["usb_w"] / 2 - 1e-3,
+                                         (P["usb_z1"] - P["usb_z0"]) / 2 - 1e-3), _xe)
+    except Exception:
+        pass
+sw_box = Part.makeBox(P["sw_x1"] - P["sw_x0"], W + 2.0, P["sw_z1"] - P["sw_z0"],
+                      V(P["sw_x0"], -(C + W) - 1.0, P["sw_z0"]))
+# slot through the PCB shelf/platform under the USB-C (connector dips to Z=0.67,
+# overhangs the +X board edge) so the shelf doesn't block the connector/cable
+usb_shelf_box = Part.makeBox(W + C + 6.0, P["usb_w"] + 2.0, (P["usb_z0"] + 0.1) - (seam_z - 0.5),
+                             V(BW - 4.0, P["usb_cy"] - (P["usb_w"] + 2.0) / 2.0, seam_z - 0.5))
+joy_hole = Part.makeCylinder(P["joy_hole_d"] / 2.0, (base_top_z - front_outer_z) + 2.0,
+                             V(P["joy_cx"], P["joy_cy"], front_outer_z - 1.0))
+
+# =====================================================================
+# FRONT COVER (screen lid, -Z)  — constant-thickness curved shell
+# =====================================================================
+def build_front_cover():
+    xo, yo, dxo, dyo, ro = bnd(O_OUT)
+    solid = rrect(xo, yo, dxo, dyo, front_outer_z, seam_z - front_outer_z, ro)
+
+    # aggressive curve on the front (-Z) outer perimeter edge
+    for r in [P["front_curve_r"], 5.0, 4.0, 3.0, 2.0, 1.0]:
+        edges = [e for e in solid.Edges
+                 if abs(e.Vertexes[0].Point.z - front_outer_z) < 1e-3
+                 and abs(e.Vertexes[1].Point.z - front_outer_z) < 1e-3]
+        try:
+            cand = solid.makeFillet(r, edges)
+            if cand.isValid():
+                solid = cand; P["_curve_used"] = r; break
+        except Exception:
+            continue
+
+    # Hollow as a CONSTANT-THICKNESS SHELL that follows the curve (no undercut
+    # gap). Remove the +Z top face and offset inward by `wall`.
+    top = [f for f in solid.Faces
+           if all(abs(v.Point.z - seam_z) < 1e-3 for v in f.Vertexes)]
+    shelled = None
+    try:
+        shelled = solid.makeThickness(top, -W, 1e-3)
+        if not shelled.isValid() or len(shelled.Solids) != 1:
+            shelled = None
+    except Exception:
+        shelled = None
+    if shelled is not None:
+        solid = shelled
+        P["_shell"] = True
+    else:                                   # fallback: straight hollow
+        xi, yi, dxi, dyi, ri = bnd(O_IN)
+        solid = solid.cut(rrect(xi, yi, dxi, dyi, front_outer_z + P["front_floor"],
+                                (tongue_top + 1.0) - (front_outer_z + P["front_floor"]), ri))
+        P["_shell"] = False
+
+    # round joystick boss (5 mm thick, annular fill right around the hole)
+    xi, yi, dxi, dyi, ri = bnd(O_IN)
+    boss = Part.makeCylinder(P["joy_boss_d"] / 2.0, P["joy_pad_th"],
+                             V(P["joy_cx"], P["joy_cy"], front_outer_z))
+    boss = boss.common(rrect(xi, yi, dxi, dyi, front_outer_z - 1.0, P["joy_pad_th"] + 2.0, ri))
+    solid = solid.fuse(boss)
+
+    # tongue up into the backplate
+    solid = solid.fuse(rring(O_TNG, O_IN, seam_z, P["lap"]))
+
+    # screen window — sized inside the 4 screw holes (fully covered), which also
+    # tucks the right-side 8-pin connector (X>=67.1) under the frame
+    m = P["scr_hole_r"] + P["win_margin"]
+    wx0 = P["scr_hole_x0"] + m                  # X: inside the corner screw holes
+    wx1 = P["scr_hole_x1"] - m
+    wy0 = P["scr_pcb_y0"] + P["win_y_gap"]      # Y: 1 mm shy of the screen PCB edges
+    wy1 = P["scr_pcb_y1"] - P["win_y_gap"]      #    (corner holes still covered by the X frame)
+    solid = solid.cut(rrect(wx0, wy0, wx1 - wx0, wy1 - wy0,
+                            front_outer_z - 1.0, W + 2.0, 1.0))
+
+    # joystick hole + snaps
+    solid = solid.cut(joy_hole)
+    for (cx, cy, wall) in SNAP:
+        solid = solid.fuse(nib_box(wall, cx, cy, O_TNG, P["snap_proj"]))
+    if P["explode_z"]:
+        solid.translate(V(0, 0, -P["explode_z"]))
+    return solid
+
+# =====================================================================
+# BACKPLATE (board carrier, +Z) — wraps board edge, shelf under the board
+# =====================================================================
+def build_backplate():
+    plate = rring(O_OUT, O_IN, seam_z, base_top_z - seam_z)         # walls wrap board edge
+    plate = plate.cut(rring(O_REL, O_IN, seam_z, P["lap"]))          # tongue relief at the seam
+    # PCB shelf: inward ledge UNDER the board (board rests on its top at Z=0);
+    # bridges the -X extension so it still grips the board edge on all four sides
+    plate = plate.fuse(shelf_ring(seam_z, P["shelf_th"]))
+    # CLOSED back panel that closes off the +Z side (raised to clear the Pico)
+    xo, yo, dxo, dyo, ro = bnd(O_OUT)
+    plate = plate.fuse(rrect(xo, yo, dxo, dyo, base_top_z - P["back_th"], P["back_th"], ro))
+    # same aggressive curve on the +Z outer back edge (closed panel = solid, no gap)
+    for r in [P["front_curve_r"], 5.0, 4.0, 3.0, 2.0, 1.0]:
+        edges = [e for e in plate.Edges
+                 if abs(e.Vertexes[0].Point.z - base_top_z) < 1e-3
+                 and abs(e.Vertexes[1].Point.z - base_top_z) < 1e-3]
+        try:
+            cand = plate.makeFillet(r, edges)
+            if cand.isValid():
+                plate = cand; break
+        except Exception:
+            continue
+    # detent recesses
+    for (cx, cy, wall) in SNAP:
+        plate = plate.cut(nib_box(wall, cx, cy, O_TNG, P["snap_proj"] + 0.15, pad=0.30))
+    plate = plate.cut(usb_box).cut(sw_box).cut(usb_shelf_box)
+    return plate
+
+# =====================================================================
+# THUMBPIECE (front, -Z)
+# =====================================================================
+def build_thumbpiece():
+    cx, cy = P["joy_cx"], P["joy_cy"]
+    bot = front_outer_z + P["thumb_clr"]
+    top = bot + P["thumb_h"]
+    disc = Part.makeCylinder(P["thumb_od"] / 2.0, P["thumb_h"], V(cx, cy, bot))
+    disc = disc.cut(Part.makeSphere(P["thumb_dish_r"],
+                    V(cx, cy, bot - P["thumb_dish_r"] + P["thumb_dish_d"])))
+    s = P["thumb_sock"]
+    disc = disc.cut(Part.makeBox(s, s, P["thumb_sock_d"] + 0.1,
+                    V(cx - s / 2, cy - s / 2, top - P["thumb_sock_d"])))
+    if P["explode_z"]:
+        disc.translate(V(0, 0, -P["explode_z"] - 6))
+    return disc
+
+# =====================================================================
+# IMPORT — strip headers, shift screen, align
+# =====================================================================
+def import_assembly(doc):
+    path = P["assembly_step"]
+    if not os.path.exists(path):
+        App.Console.PrintWarning("Assembly STEP not found: %s\n" % path)
+        return None, 0, 0
+    raw = Part.Shape(); raw.read(path)
+    raw.translate(V(-46.70, 88.00, 0.0))
+    # place the screen front just behind the front-cover inner face (no clipping)
+    dz = (front_outer_z + W) - (-P["screen_model_top"])
+    kept, stripped, shifted = [], 0, 0
+    for s in raw.Solids:
+        b = s.BoundBox
+        if P["strip_headers"] and b.ZMax > 6.0:
+            stripped += 1; continue
+        cx, cy = (b.XMin + b.XMax) / 2, (b.YMin + b.YMax) / 2
+        if P["shift_screen"] and b.ZMax < -5.0 and -2 < cx < 73 and 4 < cy < 38:
+            t = s.copy(); t.translate(V(0, 0, dz)); kept.append(t); shifted += 1
+        else:
+            kept.append(s)
+    obj = show(doc, Part.makeCompound(kept), "Dilder_Assembly", (0.55, 0.55, 0.58))
+    return obj, stripped, shifted
+
+# =====================================================================
+# RUN
+# =====================================================================
+front = build_front_cover()
+back  = build_backplate()
+thumb = build_thumbpiece()
+
+show(doc, front, "FrontCover", (0.85, 0.55, 0.30), transp=30)
+show(doc, back,  "BackPlate",  (0.30, 0.55, 0.85), transp=20)
+show(doc, thumb, "Thumbpiece", (0.15, 0.15, 0.18))
+
+asm = stripped = shifted = None
+if P["import_assembly"]:
+    asm, stripped, shifted = import_assembly(doc)
+
+doc.recompute()
+
+# --- save + export ---------------------------------------------------
+here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+proj = os.path.dirname(here) if os.path.basename(here) == "freecad" else here
+fcstd = os.path.join(here, "WetGregCase.FCStd")
+doc.saveAs(fcstd)
+exp = os.path.join(proj, "exports")
+try:
+    os.makedirs(exp, exist_ok=True)
+    Part.export([doc.getObject("FrontCover")], os.path.join(exp, "WetGregCase_FrontCover.step"))
+    Part.export([doc.getObject("BackPlate")],  os.path.join(exp, "WetGregCase_BackPlate.step"))
+    Part.export([doc.getObject("Thumbpiece")], os.path.join(exp, "WetGregCase_Thumbpiece.step"))
+except Exception as e:
+    App.Console.PrintWarning("STEP export skipped: %s\n" % e)
+
+# --- report ----------------------------------------------------------
+print("=" * 64)
+print("WetGregCase built (backplate carrier + screen lid, slim).")
+print("  Screen face Z    : %.2f   Backplate top Z : %.2f" % (front_outer_z, base_top_z))
+print("  Seam (lap) Z     : %.2f   PCB shelf top Z : %.2f" % (seam_z, shelf_top_z))
+print("  Overall height   : %.2f mm  (Z %.2f .. %.2f)" %
+      (base_top_z - front_outer_z, front_outer_z, base_top_z))
+print("  Front curve r    : %.1f mm   Joystick boss   : %.1f mm thick" %
+      (P.get("_curve_used", 0.0), P["joy_pad_th"]))
+print("  Front shell      : %s   (curved constant-wall, no undercut gap)" % P.get("_shell"))
+print("  Footprint (flush): %.2f x %.2f mm" % (front.BoundBox.XLength, front.BoundBox.YLength))
+print("  Solids valid     : front=%s back=%s thumb=%s" %
+      (front.isValid(), back.isValid(), thumb.isValid()))
+print("  Closed (water)   : front=%s back=%s thumb=%s" %
+      (front.isClosed(), back.isClosed(), thumb.isClosed()))
+if asm is not None:
+    print("  Assembly         : %d solids (stripped %d, shifted %d)" %
+          (len(asm.Shape.Solids), stripped, shifted))
+print("  Saved            : %s" % fcstd)
+print("=" * 64)
+
+if GUI:
+    try:
+        import FreeCADGui as Gui
+        Gui.activeDocument().activeView().viewIsometric()
+        Gui.SendMsgToActiveView("ViewFit")
+    except Exception:
+        pass
