@@ -16,9 +16,10 @@ the front face) and adds a snap-on joystick thumbpiece.
 > Fillet_Corners → Fillet_Front → Shell → Cut_Window → Boss_Joy → Pad_Tongue →
 > Cut_Joy. **Thumbpiece** = Disc → Dish → Socket.
 >
-> Note: the discrete snap detents from earlier versions were dropped — closure is
-> the flush lap (tongue + relief, 0.2 mm slip) + the PCB shelf. Snaps can be added
-> back as AdditiveBox features if you want a positive click.
+> Closure: flush lap (tongue + relief, 0.2 mm slip) with a **snap bead + groove**
+> running along the lap (bead on the front-cover tongue clicks into a groove in
+> the backplate relief). The dilder PCB rests on a **thin side lip at Z=0** (USB
+> cutout starts at Z=0 to match); the lip has a USB notch.
 
 ---
 

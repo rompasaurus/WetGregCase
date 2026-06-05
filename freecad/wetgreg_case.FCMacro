@@ -53,22 +53,25 @@ PARAMS = [
     # --- Pico side (+Z, backplate) ---
     ("base_above", 6.00, "Backplate outer face above PCB top (wall-thick back clears Pico 5.26)"),
     ("back_curve", 6.00, "Back-edge curve radius"),
-    # --- PCB shelf (board rests on top) ---
-    ("shelf_w",    1.60, "Shelf reach under the board edge"),
-    ("shelf_th",   1.50, "Shelf thickness (= seam drop below board)"),
-    # --- Flush lap joint ---
+    # --- PCB side lip (thin ledge at Z=0, board bottom rests on it) ---
+    ("shelf_w",    1.60, "Lip reach under the board edge"),
+    ("shelf_th",   1.50, "Seam drop below the board (front/back meet here)"),
+    ("lip_th",     1.00, "Thin lip thickness"),
+    # --- Flush lap joint + snap bead/groove ---
     ("lap",        1.00, "Lap tongue height (< shelf_th)"),
     ("tongue_t",   1.00, "Tongue thickness"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
+    ("bead_proj",  0.40, "Snap bead projection"),
+    ("bead_h",     0.60, "Snap bead height (Z)"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
-    ("win_x0",     5.60, "Window X min (inside left screw holes)"),
+    ("win_x0",    10.60, "Window X min (left edge brought in 5mm from the screw holes)"),
     ("win_x1",    65.60, "Window X max (inside right holes / 8-pin conn.)"),
     ("win_y0",     7.10, "Window Y min (1mm shy of screen PCB)"),
     ("win_y1",    35.10, "Window Y max (1mm shy of screen PCB)"),
     # --- USB-C opening (+X) ---
     ("usb_cy",    21.00, "USB-C centre Y"),
     ("usb_w",      9.70, "USB-C opening width Y"),
-    ("usb_z0",     0.50, "USB-C opening Z bottom"),
+    ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
     ("usb_z1",     5.00, "USB-C opening Z top"),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     # --- Power-switch slot (-Y) ---
@@ -116,6 +119,7 @@ def off(o):                       # (x0,y0,x1,y1) at outward offset o (extended 
 O_IN  = C
 O_TNG = C + PV["tongue_t"]
 O_REL = C + PV["tongue_t"] + PV["lap_fit"]
+bead_z = seam_z + (PV["lap"] - PV["bead_h"]) / 2.0    # snap bead/groove centre in the lap band
 
 # =====================================================================
 # HELPERS
@@ -292,17 +296,21 @@ def build_backplate():
         last = fillet(body, "Fillet_BP_Back", last, te, PV["back_curve"], SP("back_curve"))
     # 4. constant-wall curved shell (closed back, open at the seam/bottom)
     last = shell_open_at(body, "Shell_BP", last, seam_z)
-    # 5. PCB shelf rim (board rests on top at Z=0): frame, wall-inner -> under board
-    ssk = frame_sketch(body, "Sk_BP_Shelf", seam_z,
+    # 5. thin PCB side lip (board bottom rests on top at Z=0)
+    lip_th = PV["lip_th"]
+    lsk = frame_sketch(body, "Sk_BP_Lip", -lip_th,
                        IX0, IY0, IX1, IY1,
                        PV["shelf_w"], PV["shelf_w"], BW-PV["shelf_w"], BH-PV["shelf_w"])
-    spad = body.newObject("PartDesign::Pad", "Pad_BP_Shelf")
-    spad.Profile = ssk
-    spad.Length = PV["shelf_th"]
-    spad.setExpression("Length", SP("shelf_th"))
+    lpad = body.newObject("PartDesign::Pad", "Pad_BP_Lip")
+    lpad.Profile = lsk
+    lpad.Length = lip_th
+    lpad.setExpression("Length", SP("lip_th"))
     DOCO.recompute()
     # 6. lap relief (frame): open inner wall O_IN..O_REL over the lap band
     frame_pocket(body, "Cut_BP_Relief", seam_z, PV["lap"], O_REL, O_IN, SP("lap"))
+    # 6b. snap groove in the relief wall (receives the front-cover bead)
+    frame_pocket(body, "Cut_BP_Groove", bead_z, PV["bead_h"],
+                 O_REL + PV["bead_proj"], O_REL, SP("bead_h"))
     # 7. USB-C opening (+X)
     sub_box(body, "Cut_BP_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
             W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
@@ -353,6 +361,9 @@ def build_front_cover():
     tp.Length = PV["lap"]
     tp.setExpression("Length", SP("lap"))
     DOCO.recompute()
+    # 7b. snap bead (ridge on the tongue outer face -> clicks into backplate groove)
+    frame_pad(body, "Pad_FC_Bead", bead_z, PV["bead_h"],
+              O_TNG + PV["bead_proj"], O_TNG, SP("bead_h"))
     # 8. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+4.0)
