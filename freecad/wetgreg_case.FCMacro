@@ -352,14 +352,17 @@ def build_front_cover():
     # 6. round joystick boss (5 mm, annular fill around the hole)
     add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
             PV["joy_boss_d"]/2, PV["joy_pad_th"])
-    # 7. lap tongue (frame) rising into the backplate
-    ox0,oy0,ox1,oy1 = off(O_TNG)
-    ix0,iy0,ix1,iy1 = off(O_IN)
+    # 7. lap tongue (frame) rising into the backplate — clearance on ALL faces
+    #    (inner inset + shorter than the relief) so it never shares a plane with
+    #    the backplate lip/relief -> no coincident-face z-fighting at the mate
+    fit = PV["lap_fit"]
+    ox0,oy0,ox1,oy1 = off(O_TNG)              # outer (relief wall is lap_fit beyond)
+    ix0,iy0,ix1,iy1 = off(O_IN + fit)         # inner inset by lap_fit (clears the lip)
     tsk = frame_sketch(body, "Sk_FC_Tongue", seam_z, ox0,oy0,ox1,oy1, ix0,iy0,ix1,iy1)
     tp = body.newObject("PartDesign::Pad", "Pad_FC_Tongue")
     tp.Profile = tsk
-    tp.Length = PV["lap"]
-    tp.setExpression("Length", SP("lap"))
+    tp.Length = PV["lap"] - fit               # top sits below the relief top
+    tp.setExpression("Length", f"{SP('lap')} - {SP('lap_fit')}")
     DOCO.recompute()
     # 7b. snap bead (ridge on the tongue outer face -> clicks into backplate groove)
     frame_pad(body, "Pad_FC_Bead", bead_z, PV["bead_h"],
