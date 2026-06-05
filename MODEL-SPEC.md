@@ -11,10 +11,16 @@ the front face) and adds a snap-on joystick thumbpiece.
 > tree). Both halves are curved constant-wall shells; all parts are single,
 > watertight solids that slice cleanly. ~19.0 mm thick.
 >
-> Feature tree: **BackPlate** = Pad → Fillet_Corners → Fillet_Back → Shell →
-> Pad_Shelf → Cut_Relief → USB/USBShelf/Switch cuts. **FrontCover** = Pad →
-> Fillet_Corners → Fillet_Front → Shell → Cut_Window → Boss_Joy → Pad_Tongue →
-> Cut_Joy. **Thumbpiece** = Disc → Dish → Socket.
+> Architecture: the **FrontCover is the tray** — it holds the screen AND the
+> dilder PCB, which rests on an internal **ledge** (the walls come in 2 mm at
+> Z=0). It carries the screen window, joystick boss/hole, USB-C, switch, and a
+> **battery-connector gap**. The **BackPlate is a thin cap that clips around the
+> front plate** (flush, via the lap relief + snap groove) and closes the Pico side.
+>
+> Feature tree: **FrontCover** = Pad → Fillet_Corners → Fillet_Front → Shell →
+> Pad_Ledge → Cut_Window → Boss_Joy → USB/Switch/BatteryGap cuts → Tongue + Bead
+> → Cut_Joy. **BackPlate** = Pad → Fillet_Corners → Hollow → Cut_Relief →
+> Cut_Groove. **Thumbpiece** = Disc → Dish → Socket.
 >
 > Closure: flush lap (tongue + relief, 0.2 mm slip) with a **snap bead + groove**
 > running along the lap (bead on the front-cover tongue clicks into a groove in

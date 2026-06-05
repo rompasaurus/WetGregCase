@@ -50,22 +50,15 @@ PARAMS = [
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 11.40,"Screen front face below PCB bottom (front outer Z)"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
-    # --- Seam / backplate cap (clips around the front plate, flush) ---
-    ("ftop",       5.50, "Front-plate top / seam Z (above the Pico 5.26)"),
-    ("back_above", 2.00, "Backplate cap height above the seam"),
-    ("back_skin",  1.20, "Backplate closed-top skin"),
+    # --- Pico side (+Z, backplate) ---
+    ("base_above", 6.00, "Backplate outer face above PCB top (wall-thick back clears Pico 5.26)"),
     ("back_curve", 6.00, "Back-edge curve radius"),
-    # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
-    ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
-    ("ledge_th",   1.20, "Ledge thickness"),
-    ("shelf_w",    1.60, "(legacy) board-edge reach"),
-    # --- Battery connector gap (CN1 on the screen side) ---
-    ("bat_cx",    41.50, "Battery connector CN1 centre X"),
-    ("bat_cy",     2.50, "Battery connector CN1 centre Y"),
-    ("bat_gap_w", 11.00, "Battery connector gap width"),
-    ("bat_gap_d",  7.00, "Battery connector gap depth (into the board)"),
+    # --- PCB side lip (thin ledge at Z=0, board bottom rests on it) ---
+    ("shelf_w",    1.60, "Lip reach under the board edge"),
+    ("shelf_th",   1.50, "Seam drop below the board (front/back meet here)"),
+    ("lip_th",     1.00, "Thin lip thickness"),
     # --- Flush lap joint + snap bead/groove ---
-    ("lap",        1.00, "Lap tongue height"),
+    ("lap",        1.00, "Lap tongue height (< shelf_th)"),
     ("tongue_t",   1.00, "Tongue thickness"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
     ("bead_proj",  0.40, "Snap bead projection"),
@@ -112,10 +105,8 @@ def SP(alias):
 BW, BH, BT, BR = PV["board_w"], PV["board_h"], PV["board_t"], PV["board_r"]
 C, W, EXT = PV["clear"], PV["wall"], PV["ext_xmin"]
 front_outer_z = -PV["screen_top"]                 # -11.4
-seam_z        =  PV["ftop"]                        # 5.5  (front-plate top / clip seam, above the Pico)
-base_top_z    =  seam_z + PV["back_above"]         # 7.5  (backplate cap top)
-pcb_rest_z    =  0.0                               # board bottom rests on the front-plate ledge
-EINK_HOLES = [(2.4, 9.0), (2.4, 33.4), (68.8, 9.0), (68.8, 33.4)]   # M2 mount holes (local)
+seam_z        = -PV["shelf_th"]                   # -1.5
+base_top_z    =  BT + PV["base_above"]            # 7.0
 # outer footprint
 OX0, OY0 = -(EXT + C + W), -(C + W)
 OX1, OY1 =  BW + C + W,     BH + C + W
@@ -286,90 +277,99 @@ for i, (alias, val, desc) in enumerate(PARAMS, start=2):
 DOCO.recompute()
 
 # =====================================================================
-# FRONT PLATE (deep tray: screen + PCB on an internal ledge + all cutouts)
-# =====================================================================
-def build_front_cover():
-    body = DOCO.addObject("PartDesign::Body", "FrontCover")
-    # 1. outer block front_outer_z -> seam (top, above the Pico)
-    sk = rect_sketch(body, "Sk_FC", front_outer_z, OX0, OY0, OX1, OY1)
-    pad = body.newObject("PartDesign::Pad", "Pad_FC")
-    pad.Profile = sk
-    pad.Length = seam_z - front_outer_z
-    pad.setExpression("Length", f"{SP('screen_top')} + {SP('ftop')}")
-    DOCO.recompute()
-    # 2. corner fillet  3. aggressive front-edge curve
-    last = fillet(body, "Fillet_FC_Corners", pad, find_edges(pad, "vertical"),
-                  PV["corner_r"], SP("corner_r"))
-    fe = find_edges(last, "front")
-    if fe:
-        last = fillet(body, "Fillet_FC_Front", last, fe, PV["front_curve"], SP("front_curve"))
-    # 4. constant-wall curved shell, open at the +Z/seam top
-    last = shell_open_at(body, "Shell_FC", last, seam_z)
-    # 5. PCB ledge: walls come in `ledge_in` at Z=0 -> board bottom rests on top
-    lth = PV["ledge_th"]
-    lsk = frame_sketch(body, "Sk_FC_Ledge", -lth, *off(O_IN), *off(O_IN - PV["ledge_in"]))
-    lpad = body.newObject("PartDesign::Pad", "Pad_FC_Ledge")
-    lpad.Profile = lsk
-    lpad.Length = lth
-    lpad.setExpression("Length", SP("ledge_th"))
-    DOCO.recompute()
-    # 6. screen window (sized inside the screw holes)
-    sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
-            PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
-            L=f"{SP('win_x1')} - {SP('win_x0')}", Wd=f"{SP('win_y1')} - {SP('win_y0')}")
-    # 7. round joystick boss (5 mm, annular fill around the hole)
-    add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
-            PV["joy_boss_d"]/2, PV["joy_pad_th"])
-    # 8. USB-C opening (+X)
-    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
-            W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
-            Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
-    # 9. power-switch slot (-Y)
-    sub_box(body, "Cut_FC_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
-            PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
-            L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
-    # 10. battery-connector gap (CN1, -Y side): clear the ledge + inner wall + a notch
-    sub_box(body, "Cut_FC_BatteryGap",
-            PV["bat_cx"]-PV["bat_gap_w"]/2, -(C+W)-1.0, -lth-2.0,
-            PV["bat_gap_w"], PV["bat_gap_d"]+(C+W), (1.0)-(-lth-2.0),
-            L=SP("bat_gap_w"))
-    # 11. lap tongue (frame) with all-around clearance + snap bead
-    fit = PV["lap_fit"]
-    tsk = frame_sketch(body, "Sk_FC_Tongue", seam_z, *off(O_TNG), *off(O_IN + fit))
-    tp = body.newObject("PartDesign::Pad", "Pad_FC_Tongue")
-    tp.Profile = tsk
-    tp.Length = PV["lap"] - fit
-    tp.setExpression("Length", f"{SP('lap')} - {SP('lap_fit')}")
-    DOCO.recompute()
-    frame_pad(body, "Pad_FC_Bead", bead_z, PV["bead_h"], O_TNG + PV["bead_proj"], O_TNG, SP("bead_h"))
-    # 12. joystick through-hole
-    sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
-            PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
-    return body
-
-# =====================================================================
-# BACKPLATE  (thin lid that clips around the front plate, flush)
+# BACKPLATE  (board carrier)
 # =====================================================================
 def build_backplate():
     body = DOCO.addObject("PartDesign::Body", "BackPlate")
-    # 1. cap block seam -> base_top
+    # 1. outer block seam_z -> base_top_z
     sk = rect_sketch(body, "Sk_BP", seam_z, OX0, OY0, OX1, OY1)
     pad = body.newObject("PartDesign::Pad", "Pad_BP")
     pad.Profile = sk
     pad.Length = base_top_z - seam_z
-    pad.setExpression("Length", SP("back_above"))
+    pad.setExpression("Length", f"{SP('board_t')} + {SP('base_above')} + {SP('shelf_th')}")
     DOCO.recompute()
-    # 2. corner fillet
+    # 2. corner fillet  3. back-edge curve
     last = fillet(body, "Fillet_BP_Corners", pad, find_edges(pad, "vertical"),
                   PV["corner_r"], SP("corner_r"))
-    # 3. hollow the cap (closed top skin + walls, open toward the front plate)
-    sub_box(body, "Cut_BP_Hollow", IX0, IY0, seam_z-1.0, IX1-IX0, IY1-IY0,
-            (base_top_z - PV["back_skin"]) - (seam_z-1.0))
-    # 4. lap relief (frame): receives the front-plate tongue
+    te = find_edges(last, "top")
+    if te:
+        last = fillet(body, "Fillet_BP_Back", last, te, PV["back_curve"], SP("back_curve"))
+    # 4. constant-wall curved shell (closed back, open at the seam/bottom)
+    last = shell_open_at(body, "Shell_BP", last, seam_z)
+    # 5. thin PCB side lip (board bottom rests on top at Z=0)
+    lip_th = PV["lip_th"]
+    lsk = frame_sketch(body, "Sk_BP_Lip", -lip_th,
+                       IX0, IY0, IX1, IY1,
+                       PV["shelf_w"], PV["shelf_w"], BW-PV["shelf_w"], BH-PV["shelf_w"])
+    lpad = body.newObject("PartDesign::Pad", "Pad_BP_Lip")
+    lpad.Profile = lsk
+    lpad.Length = lip_th
+    lpad.setExpression("Length", SP("lip_th"))
+    DOCO.recompute()
+    # 6. lap relief (frame): open inner wall O_IN..O_REL over the lap band
     frame_pocket(body, "Cut_BP_Relief", seam_z, PV["lap"], O_REL, O_IN, SP("lap"))
-    # 5. snap groove (receives the front-plate bead)
+    # 6b. snap groove in the relief wall (receives the front-cover bead)
     frame_pocket(body, "Cut_BP_Groove", bead_z, PV["bead_h"],
                  O_REL + PV["bead_proj"], O_REL, SP("bead_h"))
+    # 7. USB-C opening (+X)
+    sub_box(body, "Cut_BP_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
+            W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
+            Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
+    # 8. shelf slot under the USB-C (connector dips below the PCB top)
+    sub_box(body, "Cut_BP_USBShelf", BW-4.0, PV["usb_cy"]-(PV["usb_w"]+2)/2, seam_z-0.5,
+            W+C+6.0, PV["usb_w"]+2.0, (PV["usb_z0"]+0.1)-(seam_z-0.5))
+    # 9. power-switch slot (-Y)
+    sub_box(body, "Cut_BP_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
+            PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
+            L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
+    return body
+
+# =====================================================================
+# FRONT COVER (screen lid, curved shell)
+# =====================================================================
+def build_front_cover():
+    body = DOCO.addObject("PartDesign::Body", "FrontCover")
+    # 1. outer block front_outer_z -> seam_z
+    sk = rect_sketch(body, "Sk_FC", front_outer_z, OX0, OY0, OX1, OY1)
+    pad = body.newObject("PartDesign::Pad", "Pad_FC")
+    pad.Profile = sk
+    pad.Length = seam_z - front_outer_z
+    pad.setExpression("Length", f"{SP('screen_top')} - {SP('shelf_th')}")
+    DOCO.recompute()
+    # 2. corner fillet
+    last = fillet(body, "Fillet_FC_Corners", pad, find_edges(pad, "vertical"),
+                  PV["corner_r"], SP("corner_r"))
+    # 3. aggressive front-edge curve
+    fe = find_edges(last, "front")
+    if fe:
+        last = fillet(body, "Fillet_FC_Front", last, fe, PV["front_curve"], SP("front_curve"))
+    # 4. shell (constant wall, open at the +Z/seam top) -> no undercut gap
+    last = shell_open_at(body, "Shell_FC", last, seam_z)
+    # 5. screen window (sized inside the screw holes)
+    sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
+            PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
+            L=f"{SP('win_x1')} - {SP('win_x0')}", Wd=f"{SP('win_y1')} - {SP('win_y0')}")
+    # 6. round joystick boss (5 mm, annular fill around the hole)
+    add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
+            PV["joy_boss_d"]/2, PV["joy_pad_th"])
+    # 7. lap tongue (frame) rising into the backplate — clearance on ALL faces
+    #    (inner inset + shorter than the relief) so it never shares a plane with
+    #    the backplate lip/relief -> no coincident-face z-fighting at the mate
+    fit = PV["lap_fit"]
+    ox0,oy0,ox1,oy1 = off(O_TNG)              # outer (relief wall is lap_fit beyond)
+    ix0,iy0,ix1,iy1 = off(O_IN + fit)         # inner inset by lap_fit (clears the lip)
+    tsk = frame_sketch(body, "Sk_FC_Tongue", seam_z, ox0,oy0,ox1,oy1, ix0,iy0,ix1,iy1)
+    tp = body.newObject("PartDesign::Pad", "Pad_FC_Tongue")
+    tp.Profile = tsk
+    tp.Length = PV["lap"] - fit               # top sits below the relief top
+    tp.setExpression("Length", f"{SP('lap')} - {SP('lap_fit')}")
+    DOCO.recompute()
+    # 7b. snap bead (ridge on the tongue outer face -> clicks into backplate groove)
+    frame_pad(body, "Pad_FC_Bead", bead_z, PV["bead_h"],
+              O_TNG + PV["bead_proj"], O_TNG, SP("bead_h"))
+    # 8. joystick through-hole
+    sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
+            PV["joy_hole_d"]/2, PV["screen_top"]+4.0)
     return body
 
 # =====================================================================
