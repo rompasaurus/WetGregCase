@@ -333,6 +333,10 @@ def build_front_cover():
             PV["bat_cx"]-PV["bat_gap_w"]/2, -(C+W)-1.0, -lth-2.0,
             PV["bat_gap_w"], PV["bat_gap_d"]+(C+W), (1.0)-(-lth-2.0),
             L=SP("bat_gap_w"))
+    # 10b. notch the ledge around the 2 mount holes closest to the Y axis (x=2.4)
+    for i, (hx, hy) in enumerate(sorted(EINK_HOLES, key=lambda h: h[0])[:2]):
+        sub_box(body, f"Cut_FC_DrillNotch{i}", IX0, hy-4.0, -PV["ledge_th"]-0.5,
+                (hx+3.0)-IX0, 8.0, PV["ledge_th"]+1.5)
     # 11. lap tongue (frame) with all-around clearance + snap bead
     fit = PV["lap_fit"]
     tsk = frame_sketch(body, "Sk_FC_Tongue", seam_z, *off(O_TNG), *off(O_IN + fit))
