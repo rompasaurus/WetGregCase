@@ -75,11 +75,11 @@ P = {
     "scr_pcb_y0":  6.10, "scr_pcb_y1": 36.10,   # screen PCB Y edges
     "win_y_gap":   1.00,   # window Y stops 1 mm shy of the screen PCB edge each side
 
-    # ---- USB-C opening (+X) ----
-    "usb_cy": 21.00, "usb_w": 10.00, "usb_z0": 0.40, "usb_z1": 5.00,
+    # ---- USB-C opening (+X) — tight to the connector (16.45..25.55, 0.67..4.89) ----
+    "usb_cy": 21.00, "usb_w": 9.70, "usb_z0": 0.50, "usb_z1": 5.00, "usb_r": 1.00,
 
-    # ---- Power-switch slot (-Y) ----
-    "sw_x0": 45.70, "sw_x1": 55.40, "sw_z0": 0.40, "sw_z1": 3.50,
+    # ---- Power-switch slot (-Y) — just the actuator travel (body 47.2..53.9) ----
+    "sw_x0": 47.50, "sw_x1": 53.50, "sw_z0": 1.00, "sw_z1": 3.30,
 
     # ---- Joystick / thumbpiece (front, -Z) ----
     "joy_cx": 81.55, "joy_cy": 21.30, "joy_hole_d": 12.00,
@@ -189,6 +189,16 @@ doc = App.newDocument(doc_name)
 
 usb_box = Part.makeBox(W + 6.0, P["usb_w"], P["usb_z1"] - P["usb_z0"],
                        V(BW + C - 1.0, P["usb_cy"] - P["usb_w"] / 2.0, P["usb_z0"]))
+# round the USB-C port corners (fillet the edges running along X)
+_ur = P.get("usb_r", 0.0)
+if _ur > 1e-6:
+    _xe = [e for e in usb_box.Edges
+           if abs(e.Vertexes[0].Point.x - e.Vertexes[1].Point.x) > 1e-6]
+    try:
+        usb_box = usb_box.makeFillet(min(_ur, P["usb_w"] / 2 - 1e-3,
+                                         (P["usb_z1"] - P["usb_z0"]) / 2 - 1e-3), _xe)
+    except Exception:
+        pass
 sw_box = Part.makeBox(P["sw_x1"] - P["sw_x0"], W + 2.0, P["sw_z1"] - P["sw_z0"],
                       V(P["sw_x0"], -(C + W) - 1.0, P["sw_z0"]))
 joy_hole = Part.makeCylinder(P["joy_hole_d"] / 2.0, (base_top_z - front_outer_z) + 2.0,
