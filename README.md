@@ -5,12 +5,14 @@ A parametric, two-piece **snap-fit enclosure** for the
 FreeCAD macro.
 
 - **Back plate** — a tray with an inward lip the PCB rests on.
-- **Front plate** — a cover that snaps around the back plate, with a window for
-  the WeAct e-ink screen.
+- **Front plate** — a cover with a window for the WeAct e-ink screen. It joins
+  the back plate with a **flush lap joint** (both halves share one outer
+  footprint — sides are flush) and internal snap detents.
+- **Thumbpiece** — snap cap over the 5-way joystick (rev2-mk2 style).
 
-The model embeds the full board layout (screen, LiPo battery, 5-way joystick,
-Raspberry Pi Pico W, USB-C, power switch) taken from the KiCad project, so the
-fit can be checked before printing.
+The macro **imports the real KiCad STEP assembly** (board + screen + battery +
+joystick + Pico W + USB-C + switch), aligned to the case, so the fit is checked
+against actual geometry.
 
 ## Key facts
 
@@ -18,9 +20,11 @@ fit can be checked before printing.
 |---|---|
 | Board | 97.8 × 42.0 × 1.6 mm, R5 corners |
 | Screen clearance | 11.4 mm above PCB top |
-| Back allowance | +2 mm beyond tallest back part (7 mm cavity) |
-| Overall size | 106.8 × 51.0 × 21.6 mm |
-| Closure | 6 cantilever snap nibs + perimeter lip |
+| Back cavity | 10.5 mm (clears real back parts to −10.1) |
+| Outer footprint | 102.4 × 46.6 mm (both plates, flush) |
+| Overall height | 25.1 mm |
+| Closure | flush lap joint + 6 internal snap detents + lip |
+| Controls | side USB-C opening · −Y power-switch slot · joystick thumbpiece |
 
 ## Layout
 
@@ -31,7 +35,8 @@ WetGregCase/
 │  └─ WetGregCase.FCStd      # generated assembly
 ├─ exports/
 │  ├─ WetGregCase_BackPlate.step
-│  └─ WetGregCase_FrontPlate.step
+│  ├─ WetGregCase_FrontPlate.step
+│  └─ WetGregCase_Thumbpiece.step
 ├─ MODEL-SPEC.md             # full design spec, dimensions, open items
 └─ README.md
 ```
