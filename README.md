@@ -5,14 +5,14 @@ A parametric, two-piece **snap-fit enclosure** for the
 FreeCAD macro.
 
 - **Backplate** (Pico side) — the **board carrier**: wraps the board edge, the PCB
-  **rests on top of a shelf** at its lower edge, only as tall as the USB-C
-  connector, open centre so it never touches a component.
-- **Front cover** (screen side) — the screen lid below; **aggressively curved
-  front edge** so it reads thin; outer face **meets the top of the screen**.
-  Carries the screen window (which **stops 1 mm before the 8-pin connector** and
-  wraps the screen's screw holes) and the joystick hole/thumbpiece. A **5 mm-thick
-  boss** by the joystick leaves room for the solar-panel connector. The −X side is
-  extended so the front wraps the screen's overhanging edge.
+  **rests on top of a shelf** at its lower edge, with a **closed back panel** that
+  closes off the +Z side (raised to clear the Pico).
+- **Front cover** (screen side) — the screen lid below, built as a **constant-wall
+  curved shell** so the aggressively curved front edge has no undercut gap. The
+  screen sits recessed behind the front face (no clipping); the window **stops
+  1 mm before the 8-pin connector** and the bezel covers the screw holes. A round
+  **5 mm boss** around the joystick hole leaves room for the solar-panel connector.
+  The −X side is extended so the front wraps the screen's overhanging edge.
 - **Thumbpiece** — snap cap over the 5-way joystick (rev2-mk2 style).
 
 The macro **imports the real KiCad STEP assembly**, aligned to the case — with the
@@ -27,9 +27,9 @@ face** — so the fit is checked against actual geometry.
 | Screen face | meets screen top at Z = −11.4 |
 | Backplate height | = USB-C connector (Z = +4.9) |
 | Outer footprint | 105.4 × 46.6 mm (both plates, flush; −X extended for screen) |
-| Overall height | **16.3 mm** |
-| Front curve | r = 6 mm · joystick boss 5 mm thick |
-| Closure | flush lap joint + 6 snap detents + PCB shelf |
+| Overall height | **18.4 mm** (closed back clears the Pico) |
+| Front curve | r = 6 mm (curved shell) · round joystick boss 5 mm |
+| Closure | flush lap joint + 6 snap detents + PCB shelf + closed back |
 | Controls | side USB-C opening · −Y power-switch slot · joystick thumbpiece |
 
 ## Layout

@@ -46,8 +46,9 @@ P = {
     "bezel":           2.50,   # frame overlap (covers the screen's corner screw holes)
     "front_curve_r":   6.00,   # aggressive front-edge curve (auto-reduced if needed)
 
-    # ---- Pico side (+Z, backplate) ----
-    "base_above":      3.30,   # backplate outer face above PCB top (= USB-C height)
+    # ---- Pico side (+Z, backplate) — CLOSED back panel ----
+    "base_above":      5.40,   # backplate outer face above PCB top (clears Pico 5.26 + back skin)
+    "back_th":         1.20,   # closed back-panel thickness
 
     # ---- Walls / fit ----
     "wall":            2.00,
@@ -81,9 +82,9 @@ P = {
     "thumb_od": 11.00, "thumb_h": 4.50, "thumb_dish_r": 12.00,
     "thumb_dish_d": 0.60, "thumb_sock": 3.30, "thumb_sock_d": 3.50, "thumb_clr": 0.10,
 
-    # ---- 5 mm joystick-area boss (room for solar-panel connector) ----
-    "joy_pad_x0": 71.0, "joy_pad_x1": 93.0, "joy_pad_y0": 11.0, "joy_pad_y1": 31.0,
-    "joy_pad_th": 5.00,
+    # ---- round joystick boss (room for solar-panel connector) ----
+    "joy_boss_d": 20.0,   # boss outer dia (annular fill around the Oe12 hole)
+    "joy_pad_th": 5.00,   # boss thickness (front plate = 5 mm at the joystick)
 
     # ---- Import ----
     "import_assembly": True, "strip_headers": True, "shift_screen": True,
@@ -190,7 +191,7 @@ joy_hole = Part.makeCylinder(P["joy_hole_d"] / 2.0, (base_top_z - front_outer_z)
                              V(P["joy_cx"], P["joy_cy"], front_outer_z - 1.0))
 
 # =====================================================================
-# FRONT COVER (screen lid, -Z)
+# FRONT COVER (screen lid, -Z)  — constant-thickness curved shell
 # =====================================================================
 def build_front_cover():
     xo, yo, dxo, dyo, ro = bnd(O_OUT)
@@ -208,33 +209,42 @@ def build_front_cover():
         except Exception:
             continue
 
-    # hollow interior
-    xi, yi, dxi, dyi, ri = bnd(O_IN)
-    solid = solid.cut(rrect(xi, yi, dxi, dyi, front_floor_inner,
-                            (tongue_top + 1.0) - front_floor_inner, ri))
+    # Hollow as a CONSTANT-THICKNESS SHELL that follows the curve (no undercut
+    # gap). Remove the +Z top face and offset inward by `wall`.
+    top = [f for f in solid.Faces
+           if all(abs(v.Point.z - seam_z) < 1e-3 for v in f.Vertexes)]
+    shelled = None
+    try:
+        shelled = solid.makeThickness(top, -W, 1e-3)
+        if not shelled.isValid() or len(shelled.Solids) != 1:
+            shelled = None
+    except Exception:
+        shelled = None
+    if shelled is not None:
+        solid = shelled
+        P["_shell"] = True
+    else:                                   # fallback: straight hollow
+        xi, yi, dxi, dyi, ri = bnd(O_IN)
+        solid = solid.cut(rrect(xi, yi, dxi, dyi, front_outer_z + P["front_floor"],
+                                (tongue_top + 1.0) - (front_outer_z + P["front_floor"]), ri))
+        P["_shell"] = False
 
-    # 5 mm joystick-area boss (room for solar-panel connector)
-    bx0, bx1 = P["joy_pad_x0"], P["joy_pad_x1"]
-    by0, by1 = P["joy_pad_y0"], P["joy_pad_y1"]
-    boss = Part.makeBox(bx1 - bx0, by1 - by0, P["joy_pad_th"],
-                        V(bx0, by0, front_outer_z))
-    # keep it inside the interior footprint
+    # round joystick boss (5 mm thick, annular fill right around the hole)
+    xi, yi, dxi, dyi, ri = bnd(O_IN)
+    boss = Part.makeCylinder(P["joy_boss_d"] / 2.0, P["joy_pad_th"],
+                             V(P["joy_cx"], P["joy_cy"], front_outer_z))
     boss = boss.common(rrect(xi, yi, dxi, dyi, front_outer_z - 1.0, P["joy_pad_th"] + 2.0, ri))
     solid = solid.fuse(boss)
 
     # tongue up into the backplate
     solid = solid.fuse(rring(O_TNG, O_IN, seam_z, P["lap"]))
 
-    # screen window — inset by the bezel from the real screen edges so the frame
-    # wraps the screen assembly and covers the corner screw holes; +Y edge stops
-    # 1 mm before the 8-pin connector
+    # screen window (inset by bezel; +Y stops 1 mm before the 8-pin connector)
     b = P["bezel"]
-    wx0 = P["scr_x0"] + b
-    wx1 = P["scr_x1"] - b
-    wy0 = P["scr_y0"] + b
-    wy1 = P["pin_row1_y"] - P["pin_gap"]
-    solid = solid.cut(rrect(wx0, wy0, wx1 - wx0, wy1 - wy0,
-                            front_outer_z - 1.0, P["front_floor"] + 2.0, 1.0))
+    solid = solid.cut(rrect(P["scr_x0"] + b, P["scr_y0"] + b,
+                            (P["scr_x1"] - b) - (P["scr_x0"] + b),
+                            (P["pin_row1_y"] - P["pin_gap"]) - (P["scr_y0"] + b),
+                            front_outer_z - 1.0, W + 2.0, 1.0))
 
     # joystick hole + snaps
     solid = solid.cut(joy_hole)
@@ -253,6 +263,9 @@ def build_backplate():
     # PCB shelf: inward ledge UNDER the board (board rests on its top at Z=0);
     # bridges the -X extension so it still grips the board edge on all four sides
     plate = plate.fuse(shelf_ring(seam_z, P["shelf_th"]))
+    # CLOSED back panel that closes off the +Z side (raised to clear the Pico)
+    xo, yo, dxo, dyo, ro = bnd(O_OUT)
+    plate = plate.fuse(rrect(xo, yo, dxo, dyo, base_top_z - P["back_th"], P["back_th"], ro))
     # detent recesses
     for (cx, cy, wall) in SNAP:
         plate = plate.cut(nib_box(wall, cx, cy, O_TNG, P["snap_proj"] + 0.15, pad=0.30))
@@ -286,7 +299,8 @@ def import_assembly(doc):
         return None, 0, 0
     raw = Part.Shape(); raw.read(path)
     raw.translate(V(-46.70, 88.00, 0.0))
-    dz = -(P["screen_top"] - P["screen_model_top"])
+    # place the screen front just behind the front-cover inner face (no clipping)
+    dz = (front_outer_z + W) - (-P["screen_model_top"])
     kept, stripped, shifted = [], 0, 0
     for s in raw.Solids:
         b = s.BoundBox
@@ -340,6 +354,7 @@ print("  Overall height   : %.2f mm  (Z %.2f .. %.2f)" %
       (base_top_z - front_outer_z, front_outer_z, base_top_z))
 print("  Front curve r    : %.1f mm   Joystick boss   : %.1f mm thick" %
       (P.get("_curve_used", 0.0), P["joy_pad_th"]))
+print("  Front shell      : %s   (curved constant-wall, no undercut gap)" % P.get("_shell"))
 print("  Footprint (flush): %.2f x %.2f mm" % (front.BoundBox.XLength, front.BoundBox.YLength))
 print("  Solids valid     : front=%s back=%s thumb=%s" %
       (front.isValid(), back.isValid(), thumb.isValid()))
