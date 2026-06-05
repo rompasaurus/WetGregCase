@@ -201,6 +201,10 @@ if _ur > 1e-6:
         pass
 sw_box = Part.makeBox(P["sw_x1"] - P["sw_x0"], W + 2.0, P["sw_z1"] - P["sw_z0"],
                       V(P["sw_x0"], -(C + W) - 1.0, P["sw_z0"]))
+# slot through the PCB shelf/platform under the USB-C (connector dips to Z=0.67,
+# overhangs the +X board edge) so the shelf doesn't block the connector/cable
+usb_shelf_box = Part.makeBox(W + C + 6.0, P["usb_w"] + 2.0, (P["usb_z0"] + 0.1) - (seam_z - 0.5),
+                             V(BW - 4.0, P["usb_cy"] - (P["usb_w"] + 2.0) / 2.0, seam_z - 0.5))
 joy_hole = Part.makeCylinder(P["joy_hole_d"] / 2.0, (base_top_z - front_outer_z) + 2.0,
                              V(P["joy_cx"], P["joy_cy"], front_outer_z - 1.0))
 
@@ -297,7 +301,7 @@ def build_backplate():
     # detent recesses
     for (cx, cy, wall) in SNAP:
         plate = plate.cut(nib_box(wall, cx, cy, O_TNG, P["snap_proj"] + 0.15, pad=0.30))
-    plate = plate.cut(usb_box).cut(sw_box)
+    plate = plate.cut(usb_box).cut(sw_box).cut(usb_shelf_box)
     return plate
 
 # =====================================================================
