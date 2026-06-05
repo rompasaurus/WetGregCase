@@ -9,10 +9,10 @@ FreeCAD macro.
   closes off the +Z side (raised to clear the Pico).
 - **Front cover** (screen side) — the screen lid below, built as a **constant-wall
   curved shell** so the aggressively curved front edge has no undercut gap. The
-  screen sits recessed behind the front face (no clipping); the window **stops
-  1 mm before the 8-pin connector** and the bezel covers the screw holes. A round
-  **5 mm boss** around the joystick hole leaves room for the solar-panel connector.
-  The −X side is extended so the front wraps the screen's overhanging edge.
+  screen sits recessed behind the front face (no clipping); the window is sized
+  **inside the 4 M2 screw holes** so the frame fully covers them and the right-side
+  8-pin connector. A round **5 mm boss** around the joystick hole leaves room for
+  the solar-panel connector. The −X side is extended to wrap the screen edge.
 - **Thumbpiece** — snap cap over the 5-way joystick (rev2-mk2 style).
 
 The macro **imports the real KiCad STEP assembly**, aligned to the case — with the
@@ -28,7 +28,7 @@ face** — so the fit is checked against actual geometry.
 | Backplate height | = USB-C connector (Z = +4.9) |
 | Outer footprint | 105.4 × 46.6 mm (both plates, flush; −X extended for screen) |
 | Overall height | **18.4 mm** (closed back clears the Pico) |
-| Front curve | r = 6 mm (curved shell) · round joystick boss 5 mm |
+| Front curve | r = 6 mm — front (shell) **and** back (closed panel) edges |
 | Closure | flush lap joint + 6 snap detents + PCB shelf + closed back |
 | Controls | side USB-C opening · −Y power-switch slot · joystick thumbpiece |
 

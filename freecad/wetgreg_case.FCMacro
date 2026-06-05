@@ -66,10 +66,12 @@ P = {
     "snap_n_long": 2, "snap_n_short": 1, "snap_w": 7.00,
     "snap_proj": 0.50, "snap_h": 1.00,
 
-    # ---- Screen window ----
-    "scr_x0": -0.40, "scr_x1": 71.60, "scr_y0": 6.10, "scr_y1": 36.10,
-    "pin_row1_y": 37.00,   # first row of the 8-pin connector (+Y)
-    "pin_gap":     1.00,   # window stops 1 mm before the pins (hidden under plate)
+    # ---- Screen window — driven by the 4 M2 screw holes so the frame fully
+    #      covers them (and the 8-pin connector on the screen's right side) ----
+    "scr_hole_x0": 2.40, "scr_hole_x1": 68.80,   # screw-hole centres (local X)
+    "scr_hole_y0": 8.90, "scr_hole_y1": 33.30,   # screw-hole centres (local Y)
+    "scr_hole_r":  2.80,   # screw-hole pad radius (cover to here)
+    "win_margin":  0.40,   # extra overlap past the pads
 
     # ---- USB-C opening (+X) ----
     "usb_cy": 21.00, "usb_w": 10.00, "usb_z0": 0.40, "usb_z1": 5.00,
@@ -239,11 +241,14 @@ def build_front_cover():
     # tongue up into the backplate
     solid = solid.fuse(rring(O_TNG, O_IN, seam_z, P["lap"]))
 
-    # screen window (inset by bezel; +Y stops 1 mm before the 8-pin connector)
-    b = P["bezel"]
-    solid = solid.cut(rrect(P["scr_x0"] + b, P["scr_y0"] + b,
-                            (P["scr_x1"] - b) - (P["scr_x0"] + b),
-                            (P["pin_row1_y"] - P["pin_gap"]) - (P["scr_y0"] + b),
+    # screen window — sized inside the 4 screw holes (fully covered), which also
+    # tucks the right-side 8-pin connector (X>=67.1) under the frame
+    m = P["scr_hole_r"] + P["win_margin"]
+    wx0 = P["scr_hole_x0"] + m
+    wx1 = P["scr_hole_x1"] - m
+    wy0 = P["scr_hole_y0"] + m
+    wy1 = P["scr_hole_y1"] - m
+    solid = solid.cut(rrect(wx0, wy0, wx1 - wx0, wy1 - wy0,
                             front_outer_z - 1.0, W + 2.0, 1.0))
 
     # joystick hole + snaps
@@ -266,6 +271,17 @@ def build_backplate():
     # CLOSED back panel that closes off the +Z side (raised to clear the Pico)
     xo, yo, dxo, dyo, ro = bnd(O_OUT)
     plate = plate.fuse(rrect(xo, yo, dxo, dyo, base_top_z - P["back_th"], P["back_th"], ro))
+    # same aggressive curve on the +Z outer back edge (closed panel = solid, no gap)
+    for r in [P["front_curve_r"], 5.0, 4.0, 3.0, 2.0, 1.0]:
+        edges = [e for e in plate.Edges
+                 if abs(e.Vertexes[0].Point.z - base_top_z) < 1e-3
+                 and abs(e.Vertexes[1].Point.z - base_top_z) < 1e-3]
+        try:
+            cand = plate.makeFillet(r, edges)
+            if cand.isValid():
+                plate = cand; break
+        except Exception:
+            continue
     # detent recesses
     for (cx, cy, wall) in SNAP:
         plate = plate.cut(nib_box(wall, cx, cy, O_TNG, P["snap_proj"] + 0.15, pad=0.30))
