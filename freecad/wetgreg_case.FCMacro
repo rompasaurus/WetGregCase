@@ -69,7 +69,7 @@ PARAMS = [
     ("lap",        3.00, "Lap tongue height (engagement; lives inside the backplate)"),
     ("tongue_t",   1.00, "Tongue thickness (thin -> flexes to snap)"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
-    ("bead_proj",  0.55, "Snap bead projection (interference past the relief wall)"),
+    ("bead_proj",  0.40, "Snap bead projection past the tongue (interference = proj-lap_fit)"),
     ("bead_h",     1.20, "Snap bead height (Z)"),
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
@@ -308,7 +308,7 @@ def add_snap_beads(body):
     for j, (cx, cy, wall) in enumerate(snap_spots()):
         if wall == '-y':   b = add_box(body, f"Bead_FC_{j}", cx-sw/2, -(O_TNG+proj), bead_z, sw, proj, bh)
         elif wall == '+y': b = add_box(body, f"Bead_FC_{j}", cx-sw/2, BH+O_TNG,     bead_z, sw, proj, bh)
-        elif wall == '-x': b = add_box(body, f"Bead_FC_{j}", -(O_TNG+proj), cy-sw/2, bead_z, proj, sw, bh)
+        elif wall == '-x': b = add_box(body, f"Bead_FC_{j}", -(EXT+O_TNG+proj), cy-sw/2, bead_z, proj, sw, bh)
         else:              b = add_box(body, f"Bead_FC_{j}", BW+O_TNG,     cy-sw/2, bead_z, proj, sw, bh)
         # lead-in: chamfer the bead's TOP outer edge (leading edge on assembly)
         ztop = bead_z + bh
@@ -317,7 +317,7 @@ def add_snap_beads(body):
             ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
                   if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.y-yo) < 1e-3 for v in e.Vertexes)]
         else:
-            xo = -(O_TNG+proj) if wall == '-x' else BW+O_TNG+proj
+            xo = -(EXT+O_TNG+proj) if wall == '-x' else BW+O_TNG+proj
             ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
                   if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.x-xo) < 1e-3 for v in e.Vertexes)]
         if ce:
@@ -331,14 +331,16 @@ def add_snap_beads(body):
                 pass
 
 def add_snap_recesses(body):
-    """Matching recesses in the backplate relief wall that capture the beads."""
-    proj, sw, bh = PV["bead_proj"], PV["snap_w"], PV["bead_h"]
-    clr, pad = 0.15, 0.4
+    """Matching BLIND recesses in the backplate relief wall that capture the
+       beads. Depth = only the bead's protrusion past the relief wall (+0.1 mm),
+       so a solid outer skin remains -> doesn't cut through the curved back wall."""
+    sw, bh, pad = PV["snap_w"], PV["bead_h"], 0.4
+    rec_d = (PV["bead_proj"] - PV["lap_fit"]) + 0.1     # just enough for the bead to seat
     for j, (cx, cy, wall) in enumerate(snap_spots()):
-        if wall == '-y':   sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, -(O_REL+proj+clr), bead_z-pad, sw+2*pad, proj+clr, bh+2*pad)
-        elif wall == '+y': sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, BH+O_REL,          bead_z-pad, sw+2*pad, proj+clr, bh+2*pad)
-        elif wall == '-x': sub_box(body, f"Recess_BP_{j}", -(O_REL+proj+clr), cy-sw/2-pad, bead_z-pad, proj+clr, sw+2*pad, bh+2*pad)
-        else:              sub_box(body, f"Recess_BP_{j}", BW+O_REL,          cy-sw/2-pad, bead_z-pad, proj+clr, sw+2*pad, bh+2*pad)
+        if wall == '-y':   sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, -(O_REL+rec_d), bead_z-pad, sw+2*pad, rec_d, bh+2*pad)
+        elif wall == '+y': sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, BH+O_REL,        bead_z-pad, sw+2*pad, rec_d, bh+2*pad)
+        elif wall == '-x': sub_box(body, f"Recess_BP_{j}", -(EXT+O_REL+rec_d), cy-sw/2-pad, bead_z-pad, rec_d, sw+2*pad, bh+2*pad)
+        else:              sub_box(body, f"Recess_BP_{j}", BW+O_REL,        cy-sw/2-pad, bead_z-pad, rec_d, sw+2*pad, bh+2*pad)
 
 # =====================================================================
 # DOCUMENT + SPREADSHEET
