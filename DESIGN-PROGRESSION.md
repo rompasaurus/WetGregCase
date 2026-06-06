@@ -30,7 +30,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 ## 2. Parameters spreadsheet
 1. `Spreadsheet workbench → New sheet`, name it **`Parameters`**.
 2. Add one row per dimension and **set an alias** on the value cell. Key ones:
-   `board_w=97.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
+   `board_w=96.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
    `corner_r=7.3`, `screen_top=12.4`, `front_curve=6.0`, `back_above=7.5`,
    `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=10.4`, `lap=3.0`, `lap_fit=0.2`,
    `bead_proj=0.55`, `bead_h=1.2`, `snap_w=8.0`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
@@ -77,18 +77,19 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 10. **Clip tongue + snap beads:** Pad a rounded frame ring up from Z=0 by
     `lap−lap_fit` (lap = 3 mm) at the inner wall, 0.2 mm clearance all round. Then
     add **discrete snap beads** (boxes, protruding `bead_proj` = 0.55) on the
-    tongue's outer face — 2 per long wall + 1 on −X (**5 total**) — each with a top
-    lead-in chamfer. They protrude past the backplate relief wall, so the thin
-    tongue flexes ~0.35 mm and **clicks** into the backplate recesses. All inside
-    the lap → **no added case thickness**. *(No +X beads: the +X end is trimmed to
-    just past the USB-C, so there's no tongue length there to hold one.)*
+    tongue's outer face — 2 per long wall + 1 on −X + **2 on +X flanking the USB-C
+    port** (**7 total**) — each with a top lead-in chamfer. They protrude past the
+    backplate relief wall, so the thin tongue flexes ~0.35 mm and **clicks** into
+    the backplate recesses. All inside the lap → **no added case thickness**.
 10b. **Power-switch clearance:** Pocket the front −Y tongue away over the switch
     actuator's X-range (`sw_x0`−0.5 .. `sw_x1`+0.5, Z 0 → lap+1) — `Cut_FC_Switch`
     — so the tongue doesn't hit the switch when the halves mate.
-10c. **+X trim:** Slab-Pocket everything at `x ≥ board_w+clear+wall − trim_xmax`
-    (`trim_xmax` = 1.0 → x ≈ 99.1) — `Cut_FC_Xtrim` — to shave the dead +X end
-    down to ~1 mm past the USB-C without touching the port opening.
 11. **Joystick hole:** Pocket a **Ø12** cylinder through everything at (81.55, 21.30).
+
+> **Sizing the +X length:** the case length is driven entirely by `board_w`
+> (`OX1 = board_w + clear + wall`). To shorten the case, *reduce `board_w`* — never
+> slab-cut the +X end, which would flat-chop the corner fillet and edge curve.
+> `board_w` = 96.8 (1 mm under the KiCad nominal, matching the real board).
 
 ## 4. Back cover — PartDesign Body "BackPlate"
 1. **New Body.** Rectangle on XY at **Z = 0** (outer footprint). **Pad** up to
@@ -104,8 +105,6 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 6. **USB-C opening:** Pocket through the +X wall, Y 16.2..25.8, Z 0..5, with
    1 mm rounded corners.
 7. **Power-switch slot:** Pocket through the −Y wall, X 47.5..53.5, Z 1.0..3.3.
-8. **+X trim:** Slab-Pocket `x ≥ board_w+clear+wall − trim_xmax` (`Cut_BP_Xtrim`)
-   to match the front cover's trimmed +X end (~99.1, ~1 mm past the USB-C).
 
 ## 5. Thumbpiece — PartDesign Body "Thumbpiece"
 1. **New Body.** Additive **cylinder** Ø11 × 4.5 at (81.55, 21.30), front face.
@@ -116,7 +115,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 ## 6. Check
 - Each Body should be a **single, closed (watertight) solid**.
 - Front↔Back **interference = 0** when assembled (clip seats with 0.2 mm slip).
-- Overall size ≈ **102.6 × 46.6 × 19.9 mm** (+X trimmed 1 mm past the USB-C).
+- Overall size ≈ **102.6 × 46.6 × 19.9 mm** (board_w 96.8; +X corner curve intact).
 
 ---
 

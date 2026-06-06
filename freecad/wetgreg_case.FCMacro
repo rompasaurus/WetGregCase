@@ -38,7 +38,7 @@ DOC = "WetGregCase"
 # =====================================================================
 PARAMS = [
     # --- Board (from KiCad) ---
-    ("board_w",   97.80, "Board width X"),
+    ("board_w",   96.80, "Board width X (1 mm shorter than the KiCad nominal)"),
     ("board_h",   42.012,"Board height Y"),
     ("board_t",    1.60, "PCB thickness"),
     ("board_r",    5.00, "Board corner radius"),
@@ -46,7 +46,6 @@ PARAMS = [
     ("clear",      0.30, "PCB-to-wall clearance per side"),
     ("wall",       2.00, "Wall thickness"),
     ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
-    ("trim_xmax",  1.00, "Trim the +X end by this (past the USB-C; drops the +X snaps)"),
     ("corner_r",   7.30, "Outer corner radius (board_r+clear+wall)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 12.40,"Front-cover depth (screen standoff + 1mm)"),
@@ -297,7 +296,8 @@ def snap_spots():
         cx = BW * (i + 1) / (n + 1)
         s += [(cx, None, '-y'), (cx, None, '+y')]
     s += [(None, BH * 0.5, '-x')]
-    # +X has no snaps: the wall is trimmed past the USB-C and the port fills it
+    off_usb = PV["usb_w"] / 2 + PV["snap_w"] / 2 + 1.2     # clear of the port + margin
+    s += [(None, PV["usb_cy"] - off_usb, '+x'), (None, PV["usb_cy"] + off_usb, '+x')]
     return s
 
 def add_snap_beads(body):
@@ -426,9 +426,6 @@ def build_front_cover():
     #      hit the switch actuator when the case is mated
     sub_box(body, "Cut_FC_Switch", PV["sw_x0"]-0.5, -(C+W)-1.0, 0.0,
             (PV["sw_x1"]-PV["sw_x0"])+1.0, W+C+2.0, PV["lap"]+1.0)
-    # 11d. trim the +X end (past the USB-C)
-    sub_box(body, "Cut_FC_Xtrim", OX1-PV["trim_xmax"], OY0-1.0, front_outer_z-1.0,
-            10.0, (OY1-OY0)+2.0, (seam_z+PV["lap"]+2.0)-(front_outer_z-1.0))
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
@@ -466,9 +463,6 @@ def build_backplate():
     sub_box(body, "Cut_BP_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
             PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
             L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
-    # 9. trim the +X end (past the USB-C) to match the front
-    sub_box(body, "Cut_BP_Xtrim", OX1-PV["trim_xmax"], OY0-1.0, seam_z-1.0,
-            10.0, (OY1-OY0)+2.0, (base_top_z+1.0)-(seam_z-1.0))
     return body
 
 # =====================================================================
