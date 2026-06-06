@@ -48,7 +48,7 @@ PARAMS = [
     ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
     ("corner_r",   7.30, "Outer corner radius (board_r+clear+wall)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top", 11.40,"Screen front face below PCB bottom (front outer Z)"),
+    ("screen_top", 15.40,"Front-cover depth: PCB shelf this far above the front face (+4mm)"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
@@ -57,7 +57,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
-    ("ledge_depth",9.40, "Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
+    ("ledge_depth",13.40,"Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),

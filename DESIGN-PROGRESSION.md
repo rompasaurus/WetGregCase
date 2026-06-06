@@ -23,15 +23,15 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 3. **Strip the unpopulated header pins:** delete the tall solid at the +Y edge
    (local X 8.4..28.7, Y 37..39.5, reaching Z +10.1) — those are empty holes.
 4. **Seat the screen to the front face:** select the WeAct panel solids
-   (local X −0.4..71.6, Y 6.1..36.1, on −Z) and move them **−0.76 in Z** so the
-   screen's front face sits at Z = −9.4 (just behind the front lid's inner face).
+   (local X −0.4..71.6, Y 6.1..36.1, on −Z) and move them down in Z so the
+   screen's front face sits just behind the front lid's inner face.
 5. Keep this assembly visible, semi-transparent — it's the fit reference only.
 
 ## 2. Parameters spreadsheet
 1. `Spreadsheet workbench → New sheet`, name it **`Parameters`**.
 2. Add one row per dimension and **set an alias** on the value cell. Key ones:
    `board_w=97.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
-   `corner_r=7.3`, `screen_top=11.4`, `front_curve=6.0`, `back_above=7.5`,
+   `corner_r=7.3`, `screen_top=15.4`, `front_curve=6.0`, `back_above=7.5`,
    `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=7.0`, `lap=1.0`, `lap_fit=0.2`,
    `bead_proj=0.4`, `bead_h=0.6`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
    `usb_*`, `sw_*`, `joy_*`, `thumb_*`, `bat_*`.
@@ -45,7 +45,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 
 ## 3. Front plate (screen lid) — PartDesign Body "FrontCover"
 1. **New Body.** Sketch a rectangle on the XY plane at **Z = −11.4** covering the
-   outer footprint (≈ 103.6 × 46.6). **Pad** it up to **Z = 0** (length 11.4).
+   outer footprint (≈ 103.6 × 46.6). **Pad** it up to **Z = 0** (length `screen_top` = 15.4).
 2. **Fillet** the 4 vertical edges → **7.3 mm** (rounded corners).
 3. **Fillet** the front (−Z, bottom) perimeter edge → **6.0 mm** (the aggressive
    "looks-thin" curve).
@@ -110,7 +110,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 | Measure | Reason |
 |---|---|
 | translate (−46.70, +88, 0) | maps the KiCad STEP into the local frame |
-| screen front at Z = −11.4 | the standoff→screen-top height you measured (11.4) |
+| front-cover depth `screen_top` = 15.4 | PCB shelf sits 15.4 mm above the front face (raised +4 mm) |
 | shell (Thickness) after the fillet | curved wall with no undercut gap |
 | ledge rib Z 0 → −7 | PCB rests at Z=0; rib structural but clears the screen (−7.7) |
 | window inside the screw holes | frame fully covers the M2 holes + 8-pin connector |
