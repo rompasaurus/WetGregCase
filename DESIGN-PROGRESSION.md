@@ -9,7 +9,7 @@ so the board sits at X 0..97.8, Y 0..42.012, with **Z = 0 at the PCB bottom**
 face. +Z is the Pico/USB side (back), −Z is the screen/joystick side (front).
 
 The case is a **clamshell**: a deep **front lid** (screen, Z −12.4 → 0) and a
-deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
+deep **back cover** (Pico/USB, Z 0 → 8.5) that clips onto it.
 
 ---
 
@@ -31,7 +31,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 1. `Spreadsheet workbench → New sheet`, name it **`Parameters`**.
 2. Add one row per dimension and **set an alias** on the value cell. Key ones:
    `board_w=96.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
-   `corner_r=7.3`, `screen_top=12.4`, `front_curve=6.0`, `back_above=7.5`,
+   `corner_r=7.3`, `screen_top=12.4`, `front_curve=6.0`, `back_above=8.5`,
    `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=10.4`, `lap=3.0`, `lap_fit=0.2`,
    `bead_proj=0.55`, `bead_h=1.2`, `snap_w=8.0`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
    `usb_*`, `sw_*`, `joy_*`, `thumb_*`, `bat_*`.
@@ -93,7 +93,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 
 ## 4. Back cover — PartDesign Body "BackPlate"
 1. **New Body.** Rectangle on XY at **Z = 0** (outer footprint). **Pad** up to
-   **Z = 7.5** (`back_above`).
+   **Z = 8.5** (`back_above`).
 2. **Fillet** vertical edges → 7.3 mm.
 3. **Fillet** the **+Z (top) back edge** → 6.0 mm (same curve as the front).
 4. **Thickness** (shell): open the **−Z (bottom) face**, 2.0 mm inward → curved
@@ -115,7 +115,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 ## 6. Check
 - Each Body should be a **single, closed (watertight) solid**.
 - Front↔Back **interference = 0** when assembled (clip seats with 0.2 mm slip).
-- Overall size ≈ **102.6 × 46.6 × 19.9 mm** (board_w 96.8; +X corner curve intact).
+- Overall size ≈ **102.6 × 46.6 × 20.9 mm** (board_w 96.8; +X corner curve intact).
 
 ---
 
@@ -127,6 +127,6 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 | shell (Thickness) after the fillet | curved wall with no undercut gap |
 | ledge rib Z 0 → −10.4 (front floor) | PCB rests at Z=0; rib runs to the front floor, meshes with the curve, clears the screen |
 | window inside the screw holes | frame fully covers the M2 holes + 8-pin connector |
-| back cover Z 0 → 7.5 | clears the Pico (5.26) under a wall-thick curved back |
+| back cover Z 0 → 8.5 | clears the Pico (5.26) **and its micro-USB** under a wall-thick curved back |
 | discrete snap beads inside the lap (0.55 mm interference) | front/back click together; no external features, no added thickness |
 | ext_xmin = 1.2 | front = PCB + walls (not over-wide); clears the screen edge |

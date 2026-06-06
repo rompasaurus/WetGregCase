@@ -35,15 +35,16 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v27 | +1 mm front-cover thickness; shave 2 mm off each end of the window's long edges (−4 mm); auto-export 3MF print meshes |
 | v28 | Trim the +X end 1 mm past the USB-C (drops the +X snaps, keeps 5); cut a power-switch clearance gap in the front −Y tongue |
 | v29 | **Undo the +X slab trim** (it flat-chopped the corner curve). Shorten by reducing `board_w` 97.8 → 96.8 so the whole case regenerates 1 mm shorter with all fillets/curves intact; restore the 2 +X snaps flanking the USB-C |
+| v30 | Deepen the backplate 1 mm (`back_above` 7.5 → 8.5) so it closes flush over the Pico's micro-USB |
 
-## Current key dimensions (v29)
+## Current key dimensions (v30)
 
 | | |
 |---|---|
 | Outer footprint | 102.6 × 46.6 mm (board_w 96.8; curves intact) |
-| Overall height | 19.9 mm |
+| Overall height | 20.9 mm |
 | Front-cover depth | `screen_top` = 12.4 mm (screen standoff + 1) |
-| Backplate depth | `back_above` = 7.5 mm (houses USB-C + Pico) |
+| Backplate depth | `back_above` = 8.5 mm (houses USB-C + Pico; clears the micro-USB) |
 | Wall / curves | 2.0 mm walls · r6 front **and** back edge curves |
 | Screen window | X 12.6–63.6, Y 7.1–35.1 (inside the screw holes; long edges shaved) |
 | Closure | flush lap + discrete snap beads (2/long wall + 1 −X + 2 +X flanking the USB-C = 7); no added thickness |
