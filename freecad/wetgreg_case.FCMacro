@@ -48,7 +48,7 @@ PARAMS = [
     ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
     ("corner_r",   7.30, "Outer corner radius (board_r+clear+wall)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top", 11.40,"Front-cover depth = screen standoff height: screen rests right at the window"),
+    ("screen_top", 12.40,"Front-cover depth (screen standoff + 1mm)"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
@@ -57,7 +57,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
-    ("ledge_depth",9.40, "Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
+    ("ledge_depth",10.40,"Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
@@ -74,8 +74,8 @@ PARAMS = [
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
-    ("win_x0",    10.60, "Window X min (left edge brought in 5mm from the screw holes)"),
-    ("win_x1",    65.60, "Window X max (inside right holes / 8-pin conn.)"),
+    ("win_x0",    12.60, "Window X min (long edge shaved 2mm)"),
+    ("win_x1",    63.60, "Window X max (long edge shaved 2mm; long edges 4mm shorter)"),
     ("win_y0",     7.10, "Window Y min (1mm shy of screen PCB)"),
     ("win_y1",    35.10, "Window Y max (1mm shy of screen PCB)"),
     # --- USB-C opening (+X) ---
@@ -532,7 +532,13 @@ try:
     Part.export([fc], os.path.join(exp, "WetGregCase_FrontCover.step"))
     Part.export([tp], os.path.join(exp, "WetGregCase_Thumbpiece.step"))
 except Exception as e:
-    App.Console.PrintWarning("export skipped: %s\n" % e)
+    App.Console.PrintWarning("STEP export skipped: %s\n" % e)
+try:                                   # print-ready 3MF meshes (regenerated each run)
+    import Mesh
+    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece")]:
+        Mesh.export([o], os.path.join(here, "WetGregCase-%s.3mf" % nm))
+except Exception as e:
+    App.Console.PrintWarning("3MF export skipped: %s\n" % e)
 
 def chk(b):
     s = b.Shape

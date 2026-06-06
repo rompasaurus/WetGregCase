@@ -8,7 +8,7 @@ spreadsheet, but the steps below are what it does, in order.
 so the board sits at X 0..97.8, Y 0..42.012, with **Z = 0 at the PCB bottom**
 face. +Z is the Pico/USB side (back), −Z is the screen/joystick side (front).
 
-The case is a **clamshell**: a deep **front lid** (screen, Z −11.4 → 0) and a
+The case is a **clamshell**: a deep **front lid** (screen, Z −12.4 → 0) and a
 deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 
 ---
@@ -31,8 +31,8 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 1. `Spreadsheet workbench → New sheet`, name it **`Parameters`**.
 2. Add one row per dimension and **set an alias** on the value cell. Key ones:
    `board_w=97.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
-   `corner_r=7.3`, `screen_top=11.4`, `front_curve=6.0`, `back_above=7.5`,
-   `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=9.4`, `lap=3.0`, `lap_fit=0.2`,
+   `corner_r=7.3`, `screen_top=12.4`, `front_curve=6.0`, `back_above=7.5`,
+   `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=10.4`, `lap=3.0`, `lap_fit=0.2`,
    `bead_proj=0.55`, `bead_h=1.2`, `snap_w=8.0`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
    `usb_*`, `sw_*`, `joy_*`, `thumb_*`, `bat_*`.
 3. Drive every dimension below from these aliases (`Parameters.alias`) so editing
@@ -44,8 +44,8 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 ---
 
 ## 3. Front plate (screen lid) — PartDesign Body "FrontCover"
-1. **New Body.** Sketch a rectangle on the XY plane at **Z = −11.4** covering the
-   outer footprint (≈ 103.6 × 46.6). **Pad** it up to **Z = 0** (length `screen_top` = 11.4).
+1. **New Body.** Sketch a rectangle on the XY plane at **Z = −12.4** covering the
+   outer footprint (≈ 103.6 × 46.6). **Pad** it up to **Z = 0** (length `screen_top` = 12.4).
 2. **Fillet** the 4 vertical edges → **7.3 mm** (rounded corners).
 3. **Fillet** the front (−Z, bottom) perimeter edge → **6.0 mm** (the aggressive
    "looks-thin" curve).
@@ -54,7 +54,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
    after the fillet is what avoids the undercut gap the curve would otherwise make.)*
 5. **PCB rib / ledge:** sketch a rounded **frame** (outer = wall inner; inner =
    2 mm further in, `ledge_in`) and **Pad it down** from Z=0 to the **front floor**
-   (`ledge_depth` = `screen_top − wall` = 9.4). This is the lip the PCB rests on at
+   (`ledge_depth` = `screen_top − wall` = 10.4). This is the lip the PCB rests on at
    Z=0, baked into the walls as a structural rib. Because the front wall curves
    inward below ≈−5.4, the straight rib outer ends up **inside** the curved wall,
    so the rib **merges with the curve** (no gap, no overhang, no poke-through) and
@@ -62,7 +62,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
    +0.3, Z from the front floor up to just past the screen back) so the rib clears
    the screen on the −X edge.
 6. **Screen window:** Pocket a rounded rectangle through the front frame, sized
-   **inside the 4 M2 screw holes** so the frame covers them: X 10.6..65.6,
+   **inside the 4 M2 screw holes** so the frame covers them: X 12.6..63.6,
    Y 7.1..35.1 (1 mm shy of the screen PCB; X tucks the right-side 8-pin connector).
 7. **Joystick boss:** add a **Ø20 cylinder**, **5 mm** tall, at (81.55, 21.30)
    from the front face inward — room for the solar-panel connector + thumbpiece.
@@ -111,7 +111,7 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 ## 6. Check
 - Each Body should be a **single, closed (watertight) solid**.
 - Front↔Back **interference = 0** when assembled (clip seats with 0.2 mm slip).
-- Overall size ≈ **103.6 × 46.6 × 18.9 mm**.
+- Overall size ≈ **103.6 × 46.6 × 19.9 mm**.
 
 ---
 
@@ -119,9 +119,9 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 | Measure | Reason |
 |---|---|
 | translate (−46.70, +88, 0) | maps the KiCad STEP into the local frame |
-| front-cover depth `screen_top` = 11.4 | = the screen standoff height, so the screen rests right at the window |
+| front-cover depth `screen_top` = 12.4 | screen standoff + 1 mm; screen rests just behind the window |
 | shell (Thickness) after the fillet | curved wall with no undercut gap |
-| ledge rib Z 0 → −9.4 (front floor) | PCB rests at Z=0; rib runs to the front floor, meshes with the curve, clears the screen |
+| ledge rib Z 0 → −10.4 (front floor) | PCB rests at Z=0; rib runs to the front floor, meshes with the curve, clears the screen |
 | window inside the screw holes | frame fully covers the M2 holes + 8-pin connector |
 | back cover Z 0 → 7.5 | clears the Pico (5.26) under a wall-thick curved back |
 | discrete snap beads inside the lap (0.55 mm interference) | front/back click together; no external features, no added thickness |
