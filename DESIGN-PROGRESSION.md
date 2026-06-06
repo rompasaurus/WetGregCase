@@ -82,6 +82,9 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
     lead-in chamfer. They protrude past the backplate relief wall, so the thin
     tongue flexes ~0.35 mm and **clicks** into the backplate recesses. All inside
     the lap → **no added case thickness**.
+11b. **USB-C front clearance:** Pocket a gap in the front plate's +X tongue at
+    the USB-C port (between the two flanking snaps) — the connector dips to
+    Z=0.67 and overhangs the board edge, so it settles into this gap.
 11. **Joystick hole:** Pocket a **Ø12** cylinder through everything at (81.55, 21.30).
 
 ## 4. Back cover — PartDesign Body "BackPlate"

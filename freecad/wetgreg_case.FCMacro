@@ -417,6 +417,11 @@ def build_front_cover():
     frame_pad(body, "Pad_FC_Tongue", seam_z, PV["lap"] - fit, O_TNG, O_IN + fit,
               f"{SP('lap')} - {SP('lap_fit')}")
     add_snap_beads(body)
+    # 11b. USB-C clearance: remove the +X tongue where the connector overhangs the
+    #      board edge and dips to Z=0.67 (sits between the two flanking snaps)
+    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2-0.6, 0.0,
+            W+C+3.0, PV["usb_w"]+1.2, PV["lap"]+1.0,
+            Wd=f"{SP('usb_w')} + 1.2")
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
