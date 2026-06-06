@@ -64,7 +64,7 @@ PARAMS = [
     ("bat_cy",     2.50, "Battery connector CN1 centre Y"),
     ("bat_gap_w", 13.00, "Battery connector / cable gap width"),
     ("bat_gap_d",  7.00, "Battery gap depth into the board (stays below the window)"),
-    ("bat_floor",  0.80, "Solid front skin left under the battery gap (printable layer)"),
+    ("bat_floor",  2.40, "Solid front skin left under the battery gap (>= wall, keeps the front floor whole + printable)"),
     # --- Flush lap joint + snap bead/groove ---
     ("lap",        1.00, "Lap tongue height"),
     ("tongue_t",   1.00, "Tongue thickness"),

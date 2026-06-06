@@ -62,10 +62,11 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 7. **Joystick boss:** add a **Ø20 cylinder**, **5 mm** tall, at (81.55, 21.30)
    from the front face inward — room for the solar-panel connector + thumbpiece.
 8. **Battery / cable gap:** Pocket a blind notch at CN1 (X 41.5, −Y side) from the
-   inside that reaches **down into the curved front-bottom** for routing battery
-   cables — as deep as possible while leaving **`bat_floor` (0.8 mm) of solid front
-   skin** (a printable first layer). Start at the wall inner — **do not** cut the
-   outer wall, and keep it below the screen window (Y < 7).
+   inside for routing battery cables. Its floor stops at **`bat_floor` (2.4 mm)
+   above the front face** — i.e. just above the front floor — so the **front skin
+   stays fully solid and printable** (no cut-through; the front is curved here, so
+   the floor must clear the whole 2 mm front wall, not a thin slice). Start at the
+   wall inner — **do not** cut the outer wall, and keep it below the window (Y < 7).
 9. **Drill notches:** Pocket the rib away around the 2 mount holes closest to the
    Y axis (X 2.4, Y 9.0 and 33.4).
 10. **Clip tongue:** Pad a rounded frame ring up from Z=0 by `lap−lap_fit` at the
