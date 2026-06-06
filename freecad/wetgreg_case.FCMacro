@@ -57,6 +57,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
+    ("ledge_depth",7.00, "Ledge padded DOWN into a side rib (stops above the screen)"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
@@ -322,9 +323,11 @@ def build_front_cover():
         last = fillet(body, "Fillet_FC_Front", last, fe, PV["front_curve"], SP("front_curve"))
     # 4. constant-wall curved shell, open at the +Z/seam top
     last = shell_open_at(body, "Shell_FC", last, seam_z)
-    # 5. PCB ledge (rounded frame, corners follow the walls -> no corner overhang)
-    lth = PV["ledge_th"]
-    frame_pad(body, "Pad_FC_Ledge", -lth, lth, O_IN, O_IN - PV["ledge_in"], SP("ledge_th"))
+    # 5. PCB ledge padded DOWN into a structural side rib (top=Z0 PCB rest;
+    #    bottom stops above the screen so it never clips through to the front)
+    ld = PV["ledge_depth"]
+    frame_pad(body, "Pad_FC_Ledge", -ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
+    lth = ld   # downstream cuts (battery gap, drill notches) clear the full rib
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
@@ -336,13 +339,13 @@ def build_front_cover():
     # 10. battery-connector gap (CN1, -Y): relieve only the LEDGE/interior, NOT the
     #     outer wall (start the cut at the wall inner so the wall stays solid)
     sub_box(body, "Cut_FC_BatteryGap",
-            PV["bat_cx"]-PV["bat_gap_w"]/2, IY0, -lth-2.0,
-            PV["bat_gap_w"], PV["bat_gap_d"], (1.0)-(-lth-2.0),
+            PV["bat_cx"]-PV["bat_gap_w"]/2, IY0, -ld-0.2,
+            PV["bat_gap_w"], PV["bat_gap_d"], (1.0)-(-ld-0.2),
             L=SP("bat_gap_w"))
-    # 10b. notch the ledge around the 2 mount holes closest to the Y axis (x=2.4)
+    # 10b. notch the rib around the 2 mount holes closest to the Y axis (x=2.4)
     for i, (hx, hy) in enumerate(sorted(EINK_HOLES, key=lambda h: h[0])[:2]):
-        sub_box(body, f"Cut_FC_DrillNotch{i}", IX0, hy-4.0, -PV["ledge_th"]-0.5,
-                (hx+3.0)-IX0, 8.0, PV["ledge_th"]+1.5)
+        sub_box(body, f"Cut_FC_DrillNotch{i}", IX0, hy-4.0, -ld-0.2,
+                (hx+3.0)-IX0, 8.0, ld+0.7)
     # 11. lap tongue (rounded frame) with all-around clearance + snap bead
     fit = PV["lap_fit"]
     frame_pad(body, "Pad_FC_Tongue", seam_z, PV["lap"] - fit, O_TNG, O_IN + fit,
