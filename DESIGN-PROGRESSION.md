@@ -32,8 +32,8 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 2. Add one row per dimension and **set an alias** on the value cell. Key ones:
    `board_w=97.8`, `board_h=42.012`, `wall=2.0`, `clear=0.3`, `ext_xmin=1.2`,
    `corner_r=7.3`, `screen_top=15.4`, `front_curve=6.0`, `back_above=7.5`,
-   `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=13.4`, `lap=1.0`, `lap_fit=0.2`,
-   `bead_proj=0.4`, `bead_h=0.6`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
+   `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=13.4`, `lap=3.0`, `lap_fit=0.2`,
+   `bead_proj=0.55`, `bead_h=1.2`, `snap_w=8.0`, `win_x0=10.6/x1=65.6/y0=7.1/y1=35.1`,
    `usb_*`, `sw_*`, `joy_*`, `thumb_*`, `bat_*`.
 3. Drive every dimension below from these aliases (`Parameters.alias`) so editing
    a cell + **Ctrl+Shift+R** updates the model.
