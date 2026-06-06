@@ -53,9 +53,13 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
    reversed/inward → a constant-wall curved shell, open at the top. *(Shelling
    after the fillet is what avoids the undercut gap the curve would otherwise make.)*
 5. **PCB rib / ledge:** sketch a rounded **frame** (outer = wall inner; inner =
-   2 mm further in, `ledge_in`) and **Pad it down** from Z=0 to **Z = −7**
-   (`ledge_depth`). This is the lip the PCB rests on at Z=0, baked into the walls
-   as a structural rib. It stops above the screen (≈ −7.7) so it never clips it.
+   2 mm further in, `ledge_in`) and **Pad it down** from Z=0 to **Z = −5.4**
+   (`ledge_depth` = `screen_top − front_curve`). This is the lip the PCB rests on
+   at Z=0, baked into the walls as a structural rib. Keep the depth so the rib
+   bottom stays on the **straight** wall (above where the front curve starts) — so
+   it joins the wall, not the curve. Then **Chamfer the rib's inner-bottom edge to
+   45°** (`ledge_in`) so the underside is self-supporting and prints with no
+   overhang.
 6. **Screen window:** Pocket a rounded rectangle through the front frame, sized
    **inside the 4 M2 screw holes** so the frame covers them: X 10.6..65.6,
    Y 7.1..35.1 (1 mm shy of the screen PCB; X tucks the right-side 8-pin connector).

@@ -57,7 +57,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
-    ("ledge_depth",7.00, "Ledge padded DOWN into a side rib (stops above the screen)"),
+    ("ledge_depth",5.40, "Ledge rib depth (<= screen_top-front_curve so it meets the straight wall, not the curve)"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
@@ -324,11 +324,31 @@ def build_front_cover():
         last = fillet(body, "Fillet_FC_Front", last, fe, PV["front_curve"], SP("front_curve"))
     # 4. constant-wall curved shell, open at the +Z/seam top
     last = shell_open_at(body, "Shell_FC", last, seam_z)
-    # 5. PCB ledge padded DOWN into a structural side rib (top=Z0 PCB rest;
-    #    bottom stops above the screen so it never clips through to the front)
+    # 5. PCB ledge padded DOWN into a structural side rib (top=Z0 PCB rest).
+    #    Depth keeps the rib on the STRAIGHT wall (above the front curve) so it
+    #    stays joined to the wall, then its underside is chamfered to 45° so it is
+    #    self-supporting (no flat overhang) and prints cleanly.
     ld = PV["ledge_depth"]
-    frame_pad(body, "Pad_FC_Ledge", -ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
+    ledge = frame_pad(body, "Pad_FC_Ledge", -ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
     lth = ld   # downstream cuts (battery gap, drill notches) clear the full rib
+    # chamfer the rib's inner-bottom edge -> 45 deg printable underside
+    rb = -ld
+    cin = [f"Edge{i+1}" for i, e in enumerate(ledge.Shape.Edges)
+           if len(e.Vertexes) == 2
+           and all(abs(v.Point.z - rb) < 0.05 for v in e.Vertexes)
+           and all(0.3 < v.Point.x < 96.3 and 1.5 < v.Point.y < 40.5 for v in e.Vertexes)]
+    if cin:
+        for csz in [PV["ledge_in"] - 0.05, PV["ledge_in"] * 0.8, PV["ledge_in"] * 0.6]:
+            try:
+                ch = body.newObject("PartDesign::Chamfer", "Chamfer_FC_Ledge")
+                ch.Base = (ledge, cin); ch.Size = csz
+                DOCO.recompute()
+                if ch.Shape.isValid():
+                    break
+                body.removeObject(ch); DOCO.recompute()
+            except Exception:
+                try: body.removeObject(ch); DOCO.recompute()
+                except Exception: pass
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
