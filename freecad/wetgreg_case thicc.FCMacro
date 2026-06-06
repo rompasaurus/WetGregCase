@@ -65,14 +65,12 @@ PARAMS = [
     ("bat_gap_w", 13.00, "Battery connector / cable gap width"),
     ("bat_gap_d",  7.00, "Battery gap depth into the board (stays below the window)"),
     ("bat_floor",  2.40, "Solid front skin left under the battery gap (>= wall, keeps the front floor whole + printable)"),
-    # --- Flush lap joint + discrete snap-fit (inside the lap; no added thickness) ---
-    ("lap",        3.00, "Lap tongue height (engagement; lives inside the backplate)"),
-    ("tongue_t",   1.00, "Tongue thickness (thin -> flexes to snap)"),
+    # --- Flush lap joint + snap bead/groove ---
+    ("lap",        1.00, "Lap tongue height"),
+    ("tongue_t",   1.00, "Tongue thickness"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
-    ("bead_proj",  0.55, "Snap bead projection (interference past the relief wall)"),
-    ("bead_h",     1.20, "Snap bead height (Z)"),
-    ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
-    ("snap_w",     8.00, "Snap bead width along the wall"),
+    ("bead_proj",  0.40, "Snap bead projection"),
+    ("bead_h",     0.60, "Snap bead height (Z)"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
     ("win_x0",    10.60, "Window X min (left edge brought in 5mm from the screw holes)"),
     ("win_x1",    65.60, "Window X max (inside right holes / 8-pin conn.)"),
@@ -101,8 +99,10 @@ PARAMS = [
     ("thumb_dish_d",0.60,"Thumb dish depth"),
     ("thumb_sock", 3.30, "Thumb socket (square)"),
     ("thumb_sock_d",3.50,"Thumb socket depth"),
-    # --- snap-bead positions (fraction along each wall) ---
-    ("snap_n_long", 2, "Snap beads per long wall"),
+    # --- detents ---
+    ("snap_w",     7.00, "Snap detent width"),
+    ("snap_proj",  0.50, "Snap detent projection"),
+    ("snap_h",     1.00, "Snap detent height"),
 ]
 PV = {a: v for (a, v, _) in PARAMS}
 
@@ -288,55 +288,6 @@ def frame_pocket(body, name, z, length, o_out, o_in, expr=None, reversed_=True):
     DOCO.recompute()
     return p
 
-def snap_spots():
-    """(cx, cy, wall) snap-bead positions: N per long wall + 1 per short wall."""
-    n = int(PV["snap_n_long"]); s = []
-    for i in range(n):
-        cx = BW * (i + 1) / (n + 1)
-        s += [(cx, None, '-y'), (cx, None, '+y')]
-    s += [(None, BH * 0.5, '-x'), (None, BH * 0.5, '+x')]
-    return s
-
-def add_snap_beads(body):
-    """Discrete snap beads on the front tongue: protrude past the relief wall so
-       the thin tongue flexes and clicks into the backplate recesses (inside the
-       lap -> no added case thickness). A top lead-in chamfer eases assembly."""
-    proj, sw, bh, lead = PV["bead_proj"], PV["snap_w"], PV["bead_h"], PV["bead_lead"]
-    for j, (cx, cy, wall) in enumerate(snap_spots()):
-        if wall == '-y':   b = add_box(body, f"Bead_FC_{j}", cx-sw/2, -(O_TNG+proj), bead_z, sw, proj, bh)
-        elif wall == '+y': b = add_box(body, f"Bead_FC_{j}", cx-sw/2, BH+O_TNG,     bead_z, sw, proj, bh)
-        elif wall == '-x': b = add_box(body, f"Bead_FC_{j}", -(O_TNG+proj), cy-sw/2, bead_z, proj, sw, bh)
-        else:              b = add_box(body, f"Bead_FC_{j}", BW+O_TNG,     cy-sw/2, bead_z, proj, sw, bh)
-        # lead-in: chamfer the bead's TOP outer edge (leading edge on assembly)
-        ztop = bead_z + bh
-        if wall in ('-y', '+y'):
-            yo = -(O_TNG+proj) if wall == '-y' else BH+O_TNG+proj
-            ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
-                  if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.y-yo) < 1e-3 for v in e.Vertexes)]
-        else:
-            xo = -(O_TNG+proj) if wall == '-x' else BW+O_TNG+proj
-            ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
-                  if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.x-xo) < 1e-3 for v in e.Vertexes)]
-        if ce:
-            try:
-                ch = body.newObject("PartDesign::Chamfer", f"BeadLead_{j}")
-                ch.Base = (b, ce); ch.Size = min(lead, bh-0.2, proj-0.05)
-                DOCO.recompute()
-                if not ch.Shape.isValid():
-                    body.removeObject(ch); DOCO.recompute()
-            except Exception:
-                pass
-
-def add_snap_recesses(body):
-    """Matching recesses in the backplate relief wall that capture the beads."""
-    proj, sw, bh = PV["bead_proj"], PV["snap_w"], PV["bead_h"]
-    clr, pad = 0.15, 0.4
-    for j, (cx, cy, wall) in enumerate(snap_spots()):
-        if wall == '-y':   sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, -(O_REL+proj+clr), bead_z-pad, sw+2*pad, proj+clr, bh+2*pad)
-        elif wall == '+y': sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, BH+O_REL,          bead_z-pad, sw+2*pad, proj+clr, bh+2*pad)
-        elif wall == '-x': sub_box(body, f"Recess_BP_{j}", -(O_REL+proj+clr), cy-sw/2-pad, bead_z-pad, proj+clr, sw+2*pad, bh+2*pad)
-        else:              sub_box(body, f"Recess_BP_{j}", BW+O_REL,          cy-sw/2-pad, bead_z-pad, proj+clr, sw+2*pad, bh+2*pad)
-
 # =====================================================================
 # DOCUMENT + SPREADSHEET
 # =====================================================================
@@ -411,7 +362,7 @@ def build_front_cover():
     fit = PV["lap_fit"]
     frame_pad(body, "Pad_FC_Tongue", seam_z, PV["lap"] - fit, O_TNG, O_IN + fit,
               f"{SP('lap')} - {SP('lap_fit')}")
-    add_snap_beads(body)
+    frame_pad(body, "Pad_FC_Bead", bead_z, PV["bead_h"], O_TNG + PV["bead_proj"], O_TNG, SP("bead_h"))
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
@@ -439,8 +390,9 @@ def build_backplate():
     last = shell_open_at(body, "Shell_BP", last, seam_z)
     # 5. lap relief (frame): receives the front-plate tongue
     frame_pocket(body, "Cut_BP_Relief", seam_z, PV["lap"], O_REL, O_IN, SP("lap"))
-    # 6. snap recesses (capture the front-plate beads)
-    add_snap_recesses(body)
+    # 6. snap groove (receives the front-plate bead)
+    frame_pocket(body, "Cut_BP_Groove", bead_z, PV["bead_h"],
+                 O_REL + PV["bead_proj"], O_REL, SP("bead_h"))
     # 7. USB-C opening (+X)
     sub_box(body, "Cut_BP_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
             W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],

@@ -74,9 +74,13 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
    wall inner — **do not** cut the outer wall, and keep it below the window (Y < 7).
 9. **Drill notches:** Pocket the rib away around the 2 mount holes closest to the
    Y axis (X 2.4, Y 9.0 and 33.4).
-10. **Clip tongue:** Pad a rounded frame ring up from Z=0 by `lap−lap_fit` at the
-    inner wall (with 0.2 mm clearance on all faces). Add a small **snap bead**
-    ring (0.4 × 0.6) on the tongue's outer face.
+10. **Clip tongue + snap beads:** Pad a rounded frame ring up from Z=0 by
+    `lap−lap_fit` (lap = 3 mm) at the inner wall, 0.2 mm clearance all round. Then
+    add **discrete snap beads** (boxes, protruding `bead_proj` = 0.55) on the
+    tongue's outer face — 2 per long wall + 1 per short wall — each with a top
+    lead-in chamfer. They protrude past the backplate relief wall, so the thin
+    tongue flexes ~0.35 mm and **clicks** into the backplate recesses. All inside
+    the lap → **no added case thickness**.
 11. **Joystick hole:** Pocket a **Ø12** cylinder through everything at (81.55, 21.30).
 
 ## 4. Back cover — PartDesign Body "BackPlate"
@@ -86,9 +90,10 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 3. **Fillet** the **+Z (top) back edge** → 6.0 mm (same curve as the front).
 4. **Thickness** (shell): open the **−Z (bottom) face**, 2.0 mm inward → curved
    closed back, walls, open toward the front. Houses the USB-C + Pico.
-5. **Lap relief:** Pocket a rounded frame (inner wall, over the `lap` band from
-   Z=0 up) to receive the front tongue. Pocket a matching **snap groove** for the
-   bead.
+5. **Lap relief + snap recesses:** Pocket a rounded frame (inner wall, over the
+   `lap` band from Z=0 up) to receive the front tongue. Then Pocket a **recess at
+   each snap bead** in the relief wall — the relief wall stays solid between
+   recesses, so the beads must flex past it and snap home.
 6. **USB-C opening:** Pocket through the +X wall, Y 16.2..25.8, Z 0..5, with
    1 mm rounded corners.
 7. **Power-switch slot:** Pocket through the −Y wall, X 47.5..53.5, Z 1.0..3.3.
@@ -115,5 +120,5 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 | ledge rib Z 0 → −13.4 (front floor) | PCB rests at Z=0; rib runs to the front floor, meshes with the curve, clears the screen |
 | window inside the screw holes | frame fully covers the M2 holes + 8-pin connector |
 | back cover Z 0 → 7.5 | clears the Pico (5.26) under a wall-thick curved back |
-| lap + bead/groove, 0.2 mm slip | flush clip with no coincident-face z-fighting |
+| discrete snap beads inside the lap (0.55 mm interference) | front/back click together; no external features, no added thickness |
 | ext_xmin = 1.2 | front = PCB + walls (not over-wide); clears the screen edge |
