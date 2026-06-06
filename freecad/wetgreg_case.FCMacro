@@ -62,8 +62,9 @@ PARAMS = [
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
     ("bat_cy",     2.50, "Battery connector CN1 centre Y"),
-    ("bat_gap_w", 11.00, "Battery connector gap width"),
-    ("bat_gap_d",  7.00, "Battery connector gap depth (into the board)"),
+    ("bat_gap_w", 13.00, "Battery connector / cable gap width"),
+    ("bat_gap_d",  7.00, "Battery gap depth into the board (stays below the window)"),
+    ("bat_floor",  0.80, "Solid front skin left under the battery gap (printable layer)"),
     # --- Flush lap joint + snap bead/groove ---
     ("lap",        1.00, "Lap tongue height"),
     ("tongue_t",   1.00, "Tongue thickness"),
@@ -336,11 +337,14 @@ def build_front_cover():
     add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
             PV["joy_boss_d"]/2, PV["joy_pad_th"])
     # (USB-C + switch live in the backplate now)
-    # 10. battery-connector gap (CN1, -Y): relieve only the LEDGE/interior, NOT the
-    #     outer wall (start the cut at the wall inner so the wall stays solid)
+    # 10. battery-connector / cable gap (CN1, -Y): a blind pocket from the inside
+    #     that reaches DOWN into the curved front-bottom for cable routing, but
+    #     leaves `bat_floor` of solid front skin (a printable first layer). Starts
+    #     at the wall inner so the outer wall stays solid.
+    bat_z0 = front_outer_z + PV["bat_floor"]
     sub_box(body, "Cut_FC_BatteryGap",
-            PV["bat_cx"]-PV["bat_gap_w"]/2, IY0, -ld-0.2,
-            PV["bat_gap_w"], PV["bat_gap_d"], (1.0)-(-ld-0.2),
+            PV["bat_cx"]-PV["bat_gap_w"]/2, IY0, bat_z0,
+            PV["bat_gap_w"], PV["bat_gap_d"], (1.0)-bat_z0,
             L=SP("bat_gap_w"))
     # 10b. notch the rib around the 2 mount holes closest to the Y axis (x=2.4)
     for i, (hx, hy) in enumerate(sorted(EINK_HOLES, key=lambda h: h[0])[:2]):
