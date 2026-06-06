@@ -77,7 +77,8 @@ deep **back cover** (Pico/USB, Z 0 → 7.5) that clips onto it.
 10. **Clip tongue + snap beads:** Pad a rounded frame ring up from Z=0 by
     `lap−lap_fit` (lap = 3 mm) at the inner wall, 0.2 mm clearance all round. Then
     add **discrete snap beads** (boxes, protruding `bead_proj` = 0.55) on the
-    tongue's outer face — 2 per long wall + 1 per short wall — each with a top
+    tongue's outer face — 2 per long wall, 1 on -X, and **2 on the +X wall
+    flanking the USB-C port** (so they don't block the opening) — each with a top
     lead-in chamfer. They protrude past the backplate relief wall, so the thin
     tongue flexes ~0.35 mm and **clicks** into the backplate recesses. All inside
     the lap → **no added case thickness**.

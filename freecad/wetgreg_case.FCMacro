@@ -72,7 +72,7 @@ PARAMS = [
     ("bead_proj",  0.55, "Snap bead projection (interference past the relief wall)"),
     ("bead_h",     1.20, "Snap bead height (Z)"),
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
-    ("snap_w",     8.00, "Snap bead width along the wall"),
+    ("snap_w",     6.00, "Snap bead width along the wall"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
     ("win_x0",    10.60, "Window X min (left edge brought in 5mm from the screw holes)"),
     ("win_x1",    65.60, "Window X max (inside right holes / 8-pin conn.)"),
@@ -289,12 +289,15 @@ def frame_pocket(body, name, z, length, o_out, o_in, expr=None, reversed_=True):
     return p
 
 def snap_spots():
-    """(cx, cy, wall) snap-bead positions: N per long wall + 1 per short wall."""
+    """(cx, cy, wall) snap-bead positions: N per long wall, 1 on -X (centre), and
+       on +X two clips FLANKING the USB-C port (so they don't hit the opening)."""
     n = int(PV["snap_n_long"]); s = []
     for i in range(n):
         cx = BW * (i + 1) / (n + 1)
         s += [(cx, None, '-y'), (cx, None, '+y')]
-    s += [(None, BH * 0.5, '-x'), (None, BH * 0.5, '+x')]
+    s += [(None, BH * 0.5, '-x')]
+    off_usb = PV["usb_w"] / 2 + PV["snap_w"] / 2 + 1.2     # clear of the port + margin
+    s += [(None, PV["usb_cy"] - off_usb, '+x'), (None, PV["usb_cy"] + off_usb, '+x')]
     return s
 
 def add_snap_beads(body):
