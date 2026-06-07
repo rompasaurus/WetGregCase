@@ -39,8 +39,9 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v31 | Stronger clasp: drop the front-tongue relief cuts at the USB-C & switch (`Cut_FC_USB`/`Cut_FC_Switch`) so the bead runs unbroken; +0.4 mm bead projection (0.4 → 0.8); +0.4 mm walls all around (`wall` 2.0 → 2.4, `corner_r` → 7.7) to keep a solid recess skin and mate smoothly; +0.2 mm USB-C opening depth (`usb_z1` 5.0 → 5.2) |
 | v32 | Extend the window's Y-axis edge 1 mm toward the Y axis (`win_x0` 12.6 → 11.6) |
 | v33 | Extend the USB-C opening depth another 0.4 mm (`usb_z1` 5.2 → 5.6) |
+| v34 | Extend the USB-C opening depth another 0.4 mm (`usb_z1` 5.6 → 6.0; ~at the inner ceiling 6.1) |
 
-## Current key dimensions (v33)
+## Current key dimensions (v34)
 
 | | |
 |---|---|
