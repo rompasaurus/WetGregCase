@@ -44,15 +44,16 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v36 | Run the USB-C slot clean through the curved cap to the back face (`usb_z1` 7.5 → 9.0 ≥ cap top) — open-topped notch, no curve overhang; cap intact outside the USB window |
 | v37 | Start the USB-C cut `back_curve` (6 mm) further inboard so it also removes the top cap's inward lean over the USB window (the rounded edge curves toward −X near the top); cap intact off the USB window |
 | v38 | Pull the USB-C cut back from the base (`usb_z1` 9.0 → 7.0): no longer cuts through the back face, leaves a ~1.5 mm solid cap roof (still clears the connector ~4.9) |
+| v39 | Front-cover outer lip at the USB notch (`Lip_FC_USB`, `usb_lip_h`=2.1): fills the lower part of the backplate's USB cutout flush with the outer surface, covering the bead/seam; +0.4 mm back-cover depth (`back_above` 8.5 → 8.9) so the Pico clears the shell |
 
-## Current key dimensions (v38)
+## Current key dimensions (v39)
 
 | | |
 |---|---|
 | Outer footprint | 103.4 × 47.4 mm (board_w 96.8; walls +0.4) |
-| Overall height | 20.9 mm |
+| Overall height | 21.3 mm |
 | Front-cover depth | `screen_top` = 12.4 mm (screen standoff + 1) |
-| Backplate depth | `back_above` = 8.5 mm (houses USB-C + Pico; clears the micro-USB) |
+| Backplate depth | `back_above` = 8.9 mm (USB-C + Pico; clears micro-USB + Pico-to-shell) |
 | Wall / curves | 2.4 mm walls · r7.7 corners · r6 front **and** back edge curves |
 | Screen window | X 11.6–63.6, Y 7.1–35.1 (inside the screw holes; long edges shaved) |
 | Closure | flush lap + discrete snap beads (2/long wall + 1 −X + 2 +X flanking the USB-C = 7), 0.8 mm projection, tongue continuous at the USB/switch |

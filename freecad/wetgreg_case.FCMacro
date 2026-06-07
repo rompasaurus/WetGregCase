@@ -52,7 +52,7 @@ PARAMS = [
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
-    ("back_above", 8.50, "Backplate depth above the seam (houses USB-C + Pico; +1 to clear the Pico micro-USB)"),
+    ("back_above", 8.90, "Backplate depth above the seam (houses USB-C + Pico; +1 micro-USB, +0.4 Pico-to-shell clearance)"),
     ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
@@ -84,6 +84,7 @@ PARAMS = [
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
     ("usb_z1",     7.00, "USB-C opening Z top. < cap top (8.5) leaves a solid back roof (8.5-this); >= 8.5 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
+    ("usb_lip_h",  2.10, "Front-cover outer lip height at the USB notch (covers the bead/seam, flush; = bead top). Keep below the USB-C port mouth."),
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
     ("sw_x1",     53.50, "Switch slot X max"),
@@ -419,6 +420,17 @@ def build_front_cover():
     add_snap_beads(body)
     # (front tongue is now continuous at the USB-C and switch — no relief cuts — so
     #  the bead runs unbroken there for a firmer clasp)
+    # 11e. Outer lip at the USB-C notch: fills the LOWER part of the backplate's USB
+    #      cutout, flush with the outer +X surface (x = tongue outer .. OX1), rising
+    #      from the seam by usb_lip_h to cover the exposed bead/seam. Sits inside the
+    #      backplate notch with lap_fit clearance each side; the port mouth is above it.
+    lip = add_box(body, "Lip_FC_USB",
+                  BW + O_TNG, PV["usb_cy"] - (PV["usb_w"] - 2*PV["lap_fit"]) / 2, seam_z,
+                  OX1 - (BW + O_TNG), PV["usb_w"] - 2*PV["lap_fit"], PV["usb_lip_h"])
+    lip.setExpression("Length", f"{SP('wall')} - {SP('tongue_t')}")
+    lip.setExpression("Width",  f"{SP('usb_w')} - 2 * {SP('lap_fit')}")
+    lip.setExpression("Height", SP("usb_lip_h"))
+    DOCO.recompute()
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
