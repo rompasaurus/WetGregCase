@@ -46,8 +46,9 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v38 | Pull the USB-C cut back from the base (`usb_z1` 9.0 → 7.0): no longer cuts through the back face, leaves a ~1.5 mm solid cap roof (still clears the connector ~4.9) |
 | v39 | Front-cover outer lip at the USB notch (`Lip_FC_USB`, `usb_lip_h`=2.1): fills the lower part of the backplate's USB cutout flush with the outer surface, covering the bead/seam; +0.4 mm back-cover depth (`back_above` 8.5 → 8.9) so the Pico clears the shell |
 | v40 | Raise the power-switch slot 1 mm (`sw_z0` 1.0 → 2.0, `sw_z1` 3.3 → 4.3); confirmed it cuts clean through the −Y wall |
+| v41 | Reduce the USB-C cutout depth 0.6 mm (`usb_z1` 7.0 → 6.4); thicker ~2.5 mm cap roof, still clears the connector |
 
-## Current key dimensions (v40)
+## Current key dimensions (v41)
 
 | | |
 |---|---|

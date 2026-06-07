@@ -82,7 +82,7 @@ PARAMS = [
     ("usb_cy",    21.00, "USB-C centre Y"),
     ("usb_w",      9.70, "USB-C opening width Y"),
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
-    ("usb_z1",     7.00, "USB-C opening Z top. < cap top (8.5) leaves a solid back roof (8.5-this); >= 8.5 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
+    ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     ("usb_lip_h",  2.10, "Front-cover outer lip height at the USB notch (covers the bead/seam, flush; = bead top). Keep below the USB-C port mouth."),
     # --- Power-switch slot (-Y) ---
