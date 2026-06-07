@@ -448,9 +448,11 @@ def build_backplate():
     frame_pocket(body, "Cut_BP_Relief", seam_z, PV["lap"], O_REL, O_IN, SP("lap"))
     # 6. snap recesses (capture the front-plate beads)
     add_snap_recesses(body)
-    # 7. USB-C opening (+X)
-    sub_box(body, "Cut_BP_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
-            W+C+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
+    # 7. USB-C opening (+X). Start the cut inboard by back_curve so it also removes
+    #    the top cap's inward lean (the rounded edge curves toward -X near the top);
+    #    runs up through the cap (usb_z1 >= cap top) -> clean notch, no curve overhang.
+    sub_box(body, "Cut_BP_USB", BW+C-PV["back_curve"]-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
+            W+C+PV["back_curve"]+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
             Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
     # 8. power-switch slot (-Y)
     sub_box(body, "Cut_BP_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],

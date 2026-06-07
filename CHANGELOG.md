@@ -42,8 +42,9 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v34 | Extend the USB-C opening depth another 0.4 mm (`usb_z1` 5.6 → 6.0; ~at the inner ceiling 6.1) |
 | v35 | Carve the USB-C slot up into the curved top cap (`usb_z1` 6.0 → 7.5) so the connector clears the curvature; ~1 mm cap roof remains, curve intact off the USB window |
 | v36 | Run the USB-C slot clean through the curved cap to the back face (`usb_z1` 7.5 → 9.0 ≥ cap top) — open-topped notch, no curve overhang; cap intact outside the USB window |
+| v37 | Start the USB-C cut `back_curve` (6 mm) further inboard so it also removes the top cap's inward lean over the USB window (the rounded edge curves toward −X near the top); cap intact off the USB window |
 
-## Current key dimensions (v36)
+## Current key dimensions (v37)
 
 | | |
 |---|---|
