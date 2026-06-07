@@ -74,7 +74,7 @@ PARAMS = [
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
-    ("win_x0",    12.60, "Window X min (long edge shaved 2mm)"),
+    ("win_x0",    11.60, "Window X min (extended 1mm toward the Y axis)"),
     ("win_x1",    63.60, "Window X max (long edge shaved 2mm; long edges 4mm shorter)"),
     ("win_y0",     7.10, "Window Y min (1mm shy of screen PCB)"),
     ("win_y1",    35.10, "Window Y max (1mm shy of screen PCB)"),

@@ -33,7 +33,7 @@ deep **back cover** (Pico/USB, Z 0 → 8.5) that clips onto it.
    `board_w=96.8`, `board_h=42.012`, `wall=2.4`, `clear=0.3`, `ext_xmin=1.2`,
    `corner_r=7.7`, `screen_top=12.4`, `front_curve=6.0`, `back_above=8.5`,
    `back_curve=6.0`, `ledge_in=2.0`, `ledge_depth=10.0`, `lap=3.0`, `lap_fit=0.2`,
-   `bead_proj=0.8`, `bead_h=1.2`, `snap_w=6.0`, `win_x0=12.6/x1=63.6/y0=7.1/y1=35.1`,
+   `bead_proj=0.8`, `bead_h=1.2`, `snap_w=6.0`, `win_x0=11.6/x1=63.6/y0=7.1/y1=35.1`,
    `usb_*`, `sw_*`, `joy_*`, `thumb_*`, `bat_*`.
 3. Drive every dimension below from these aliases (`Parameters.alias`) so editing
    a cell + **Ctrl+Shift+R** updates the model.
@@ -62,7 +62,7 @@ deep **back cover** (Pico/USB, Z 0 → 8.5) that clips onto it.
    +0.3, Z from the front floor up to just past the screen back) so the rib clears
    the screen on the −X edge.
 6. **Screen window:** Pocket a rounded rectangle through the front frame, sized
-   **inside the 4 M2 screw holes** so the frame covers them: X 12.6..63.6,
+   **inside the 4 M2 screw holes** so the frame covers them: X 11.6..63.6,
    Y 7.1..35.1 (1 mm shy of the screen PCB; X tucks the right-side 8-pin connector).
 7. **Joystick boss:** add a **Ø20 cylinder**, **5 mm** tall, at (81.55, 21.30)
    from the front face inward — room for the solar-panel connector + thumbpiece.

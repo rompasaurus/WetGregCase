@@ -37,8 +37,9 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v29 | **Undo the +X slab trim** (it flat-chopped the corner curve). Shorten by reducing `board_w` 97.8 → 96.8 so the whole case regenerates 1 mm shorter with all fillets/curves intact; restore the 2 +X snaps flanking the USB-C |
 | v30 | Deepen the backplate 1 mm (`back_above` 7.5 → 8.5) so it closes flush over the Pico's micro-USB |
 | v31 | Stronger clasp: drop the front-tongue relief cuts at the USB-C & switch (`Cut_FC_USB`/`Cut_FC_Switch`) so the bead runs unbroken; +0.4 mm bead projection (0.4 → 0.8); +0.4 mm walls all around (`wall` 2.0 → 2.4, `corner_r` → 7.7) to keep a solid recess skin and mate smoothly; +0.2 mm USB-C opening depth (`usb_z1` 5.0 → 5.2) |
+| v32 | Extend the window's Y-axis edge 1 mm toward the Y axis (`win_x0` 12.6 → 11.6) |
 
-## Current key dimensions (v31)
+## Current key dimensions (v32)
 
 | | |
 |---|---|
@@ -47,7 +48,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | Front-cover depth | `screen_top` = 12.4 mm (screen standoff + 1) |
 | Backplate depth | `back_above` = 8.5 mm (houses USB-C + Pico; clears the micro-USB) |
 | Wall / curves | 2.4 mm walls · r7.7 corners · r6 front **and** back edge curves |
-| Screen window | X 12.6–63.6, Y 7.1–35.1 (inside the screw holes; long edges shaved) |
+| Screen window | X 11.6–63.6, Y 7.1–35.1 (inside the screw holes; long edges shaved) |
 | Closure | flush lap + discrete snap beads (2/long wall + 1 −X + 2 +X flanking the USB-C = 7), 0.8 mm projection, tongue continuous at the USB/switch |
 | Controls | side USB-C opening · −Y switch slot · joystick boss + thumbpiece |
 
