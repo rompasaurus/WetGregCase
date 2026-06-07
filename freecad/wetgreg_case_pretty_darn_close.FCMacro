@@ -44,9 +44,9 @@ PARAMS = [
     ("board_r",    5.00, "Board corner radius"),
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
-    ("wall",       2.40, "Wall thickness (+0.4 for snap-bead rigidity)"),
+    ("wall",       2.00, "Wall thickness"),
     ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
-    ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
+    ("corner_r",   7.30, "Outer corner radius (board_r+clear+wall)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 12.40,"Front-cover depth (screen standoff + 1mm)"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
@@ -57,7 +57,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
-    ("ledge_depth",10.00,"Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
+    ("ledge_depth",10.40,"Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
@@ -69,7 +69,7 @@ PARAMS = [
     ("lap",        3.00, "Lap tongue height (engagement; lives inside the backplate)"),
     ("tongue_t",   1.00, "Tongue thickness (thin -> flexes to snap)"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
-    ("bead_proj",  0.80, "Snap bead projection past the tongue (interference = proj-lap_fit; +0.4 for clasp grip)"),
+    ("bead_proj",  0.40, "Snap bead projection past the tongue (interference = proj-lap_fit)"),
     ("bead_h",     1.20, "Snap bead height (Z)"),
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
@@ -82,7 +82,7 @@ PARAMS = [
     ("usb_cy",    21.00, "USB-C centre Y"),
     ("usb_w",      9.70, "USB-C opening width Y"),
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
-    ("usb_z1",     5.20, "USB-C opening Z top (+0.2 deeper opening)"),
+    ("usb_z1",     5.00, "USB-C opening Z top"),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
@@ -417,8 +417,15 @@ def build_front_cover():
     frame_pad(body, "Pad_FC_Tongue", seam_z, PV["lap"] - fit, O_TNG, O_IN + fit,
               f"{SP('lap')} - {SP('lap_fit')}")
     add_snap_beads(body)
-    # (front tongue is now continuous at the USB-C and switch — no relief cuts — so
-    #  the bead runs unbroken there for a firmer clasp)
+    # 11b. USB-C clearance: remove the +X tongue where the connector overhangs the
+    #      board edge and dips to Z=0.67 (sits between the two flanking snaps)
+    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2-0.6, 0.0,
+            W+C+3.0, PV["usb_w"]+1.2, PV["lap"]+1.0,
+            Wd=f"{SP('usb_w')} + 1.2")
+    # 11c. power-switch clearance: remove the -Y tongue at the switch so it doesn't
+    #      hit the switch actuator when the case is mated
+    sub_box(body, "Cut_FC_Switch", PV["sw_x0"]-0.5, -(C+W)-1.0, 0.0,
+            (PV["sw_x1"]-PV["sw_x0"])+1.0, W+C+2.0, PV["lap"]+1.0)
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
