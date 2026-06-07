@@ -82,7 +82,7 @@ PARAMS = [
     ("usb_cy",    21.00, "USB-C centre Y"),
     ("usb_w",      9.70, "USB-C opening width Y"),
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
-    ("usb_z1",     7.50, "USB-C opening Z top (cuts up into the curved top cap to clear the USB-C)"),
+    ("usb_z1",     9.00, "USB-C opening Z top (>= back_above top 8.5: slot runs clean through the curved cap to the back face, no overhang)"),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
