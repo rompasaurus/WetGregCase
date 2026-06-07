@@ -88,8 +88,8 @@ PARAMS = [
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
     ("sw_x1",     53.50, "Switch slot X max"),
-    ("sw_z0",      1.00, "Switch slot Z bottom"),
-    ("sw_z1",      3.30, "Switch slot Z top"),
+    ("sw_z0",      2.00, "Switch slot Z bottom (raised 1mm)"),
+    ("sw_z1",      4.30, "Switch slot Z top (raised 1mm)"),
     # --- Joystick / boss / thumbpiece ---
     ("joy_cx",    81.55, "Joystick centre X"),
     ("joy_cy",    21.30, "Joystick centre Y"),
