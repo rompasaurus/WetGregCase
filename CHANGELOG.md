@@ -40,8 +40,9 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v32 | Extend the window's Y-axis edge 1 mm toward the Y axis (`win_x0` 12.6 → 11.6) |
 | v33 | Extend the USB-C opening depth another 0.4 mm (`usb_z1` 5.2 → 5.6) |
 | v34 | Extend the USB-C opening depth another 0.4 mm (`usb_z1` 5.6 → 6.0; ~at the inner ceiling 6.1) |
+| v35 | Carve the USB-C slot up into the curved top cap (`usb_z1` 6.0 → 7.5) so the connector clears the curvature; ~1 mm cap roof remains, curve intact off the USB window |
 
-## Current key dimensions (v34)
+## Current key dimensions (v35)
 
 | | |
 |---|---|
