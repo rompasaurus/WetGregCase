@@ -22,9 +22,10 @@ deep **back cover** (Pico/USB, Z 0 → 8.5) that clips onto it.
    This lands the KiCad board into the local frame (board bottom at Z=0).
 3. **Strip the unpopulated header pins:** delete the tall solid at the +Y edge
    (local X 8.4..28.7, Y 37..39.5, reaching Z +10.1) — those are empty holes.
-4. **Seat the screen to the front face:** select the WeAct panel solids
-   (local X −0.4..71.6, Y 6.1..36.1, on −Z) and move them down in Z so the
-   screen's front face sits just behind the front lid's inner face.
+4. **Keep the screen at its real STEP position (reality):** the imported screen's
+   front face is at z=-8.64, which is ~1.36 mm behind the window-frame inner face
+   (-10.0) — a genuine air gap, not a clip. `screen_cal`=0 leaves it there (the old
+   build shoved it -1.36 mm onto the front floor, which made it clip the frame).
 5. Keep this assembly visible, semi-transparent — it's the fit reference only.
 
 ## 2. Parameters spreadsheet
@@ -59,8 +60,8 @@ deep **back cover** (Pico/USB, Z 0 → 8.5) that clips onto it.
    inward below ≈−5.4, the straight rib outer ends up **inside** the curved wall,
    so the rib **merges with the curve** (no gap, no overhang, no poke-through) and
    meets the front face. Then Pocket a **screen-clearance box** (screen footprint
-   +0.3, Z from the front floor up to just past the screen back) so the rib clears
-   the screen on the −X edge.
+   +0.3, Z from the front floor up to `screen_back` (just past the real screen
+   back) so the rib clears the screen on the −X edge.
 6. **Screen window:** Pocket a rounded rectangle through the front frame, sized
    **inside the 4 M2 screw holes** so the frame covers them: X 11.6..63.6,
    Y 7.1..35.1 (1 mm shy of the screen PCB; X tucks the right-side 8-pin connector).

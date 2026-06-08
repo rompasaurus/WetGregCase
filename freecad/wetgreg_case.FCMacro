@@ -49,6 +49,8 @@ PARAMS = [
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 12.40,"Front-cover depth (screen standoff + 1mm)"),
+    ("screen_cal",  0.00,"Screen-position calibration in the reference assembly (0 = real STEP position; + moves the screen toward the board)"),
+    ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
@@ -84,7 +86,7 @@ PARAMS = [
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
     ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
-    ("usb_lip_h",  2.10, "Front-cover outer lip height at the USB notch (covers the bead/seam, flush; = bead top). Keep below the USB-C port mouth."),
+    ("usb_lip_h",  0.50, "Front-cover outer lip height at the USB notch (flush seam filler). MUST stay below the USB-C connector bottom (z=0.67) or it fouls the connector."),
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
     ("sw_x1",     53.50, "Switch slot X max"),
@@ -387,11 +389,12 @@ def build_front_cover():
     ld = PV["ledge_depth"]
     ledge = frame_pad(body, "Pad_FC_Ledge", -ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
     lth = ld   # downstream cuts (battery gap, drill notches) clear the full rib
-    # carve the SCREEN space so the rib clears the screen on the -X (screen) edge
+    # carve the SCREEN space so the rib clears the REAL screen depth on the -X edge:
+    # from the front floor up to just past the screen back (screen_back); the rib
+    # remains above that (screen_back -> 0) to support the PCB.
     sx0, sx1, sy0, sy1 = -0.40, 71.60, 6.10, 36.10        # screen module footprint
-    scr_front = front_outer_z + W                          # screen front face
     sub_box(body, "Cut_FC_ScreenClear", sx0-0.3, sy0-0.3, front_floor_inner,
-            (sx1-sx0)+0.6, (sy1-sy0)+0.6, (scr_front+2.0)-front_floor_inner)
+            (sx1-sx0)+0.6, (sy1-sy0)+0.6, PV["screen_back"]-front_floor_inner)
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
@@ -431,6 +434,13 @@ def build_front_cover():
     lip.setExpression("Width",  f"{SP('usb_w')} - 2 * {SP('lap_fit')}")
     lip.setExpression("Height", SP("usb_lip_h"))
     DOCO.recompute()
+    # 11f. Relieve the tongue ONLY where the USB-C connector overhangs the board edge
+    #      (connector reaches x=98.58, z 0.67..4.89). Cut spans the USB y-window and
+    #      stops at the tongue outer (x = BW+O_TNG) so the outer lip survives; the
+    #      +X flanking beads sit outside this window and survive too.
+    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, 0.0,
+            (BW+O_TNG)-(BW+C-1.0), PV["usb_w"], PV["lap"],
+            Wd=SP("usb_w"), L=f"{SP('tongue_t')} + 1.0", H=SP("lap"))
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
@@ -502,7 +512,13 @@ def import_assembly():
         return None
     raw = Part.Shape(); raw.read(path)
     raw.translate(V(-46.70, 88.00, 0.0))
-    dz = (front_outer_z + W) - (-8.64)
+    # Calibration: keep the screen at its AUTHORITATIVE STEP position (reality).
+    # The screen's real front face is at z=-8.64; the case window-frame inner face is
+    # at front_outer_z+wall=-10.0, so the real screen sits ~1.36mm behind the frame
+    # (a genuine air gap, not a clip). screen_cal nudges it if needed (+ = toward
+    # the board). The old build shoved it -1.36mm onto the front floor, which made it
+    # clip the frame in the model; screen_cal=0 restores reality.
+    dz = PV["screen_cal"]
     kept = []
     for s in raw.Solids:
         b = s.BoundBox
