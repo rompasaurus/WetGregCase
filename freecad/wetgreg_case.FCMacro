@@ -55,7 +55,7 @@ PARAMS = [
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
-    ("back_above",10.20, "Backplate depth above the seam (houses USB-C + Pico; raised so the Pico (top ~7.4 after board_rest_z) clears the shell with ~0.4mm)"),
+    ("back_above",10.10, "Backplate depth above the seam = Pico top (~7.36) + ~0.35 clearance + wall: the MINIMUM closed back that still encloses the Pico (the tallest +Z part, 0.37mm above the USB-C)"),
     ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
