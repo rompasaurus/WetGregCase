@@ -41,7 +41,7 @@ PARAMS = [
     ("board_w",   96.80, "Board width X (1 mm shorter than the KiCad nominal)"),
     ("board_h",   42.012,"Board height Y"),
     ("board_t",    1.47, "PCB thickness (real, from STEP)"),
-    ("board_rest_z",2.13, "Board bottom rests this high (~ bead top): the board sits ON the bead, lifting the USB-C base (2.80) clear of the tongue top (2.8) so NO USB relief is needed and the bead fully connects"),
+    ("board_rest_z",2.10, "Board bottom rests at the bead top (FLUSH): the board sits ON the bead, lifting the USB-C base clear of the tongue so NO USB relief is needed and the bead fully connects"),
     ("board_r",    5.00, "Board corner radius"),
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
@@ -49,7 +49,7 @@ PARAMS = [
     ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top",  8.91,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
+    ("screen_top",  8.94,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
     ("screen_cal",  0.00,"Screen-position calibration in the reference assembly (0 = real STEP position; + moves the screen toward the board)"),
     ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
@@ -561,13 +561,14 @@ def import_assembly():
     # the board). The old build shoved it -1.36mm onto the front floor, which made it
     # clip the frame in the model; screen_cal=0 restores reality.
     dz = PV["screen_cal"]
+    rz = PV["board_rest_z"]            # thresholds move up with the raised board
     kept = []
     for s in raw.Solids:
         b = s.BoundBox
-        if b.ZMax > 6.0:
+        if b.ZMax > 6.0 + rz:          # strip only the tall header pins (orig ZMax~10), not the raised Pico/USB
             continue
         cx, cy = (b.XMin+b.XMax)/2, (b.YMin+b.YMax)/2
-        if b.ZMax < -5.0 and -2 < cx < 73 and 4 < cy < 38:
+        if b.ZMax < -5.0 + rz and -2 < cx < 73 and 4 < cy < 38:
             t = s.copy(); t.translate(V(0, 0, dz)); kept.append(t)
         else:
             kept.append(s)
