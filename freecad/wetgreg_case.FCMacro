@@ -49,8 +49,8 @@ PARAMS = [
     ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top",  8.94,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
-    ("screen_cal",  0.00,"Screen-position calibration in the reference assembly (0 = real STEP position; + moves the screen toward the board)"),
+    ("screen_top", 11.83,"Front-cover depth so the window inner meets the real screen front (-9.43): 13mm screen-to-PCB-backside stack. = wall - (board_rest_z + board_t - 13)."),
+    ("screen_cal", -2.89,"Screen Z calibration: STEP model placed the screen 2.89mm too close; this shifts it out to the real 13mm top-of-screen-to-PCB-backside stack (- = away from board)"),
     ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
@@ -60,7 +60,7 @@ PARAMS = [
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
-    ("ledge_depth", 8.64,"Ledge rib depth = screen_top-wall: runs down to the front floor, merging with the curved wall"),
+    ("ledge_depth",11.53,"Ledge rib depth = pcb_rest_z + screen_top - wall: runs from the board rest down to the front floor, merging with the curved wall"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
@@ -406,7 +406,7 @@ def build_front_cover():
     sx0, sx1, sy0, sy1 = -0.40, 71.60, 6.10, 36.10        # screen module footprint
     clx0 = max(sx0-0.3, IX0)   # clear the screen but don't breach the (now-tight) -X wall
     sub_box(body, "Cut_FC_ScreenClear", clx0, sy0-0.3, front_floor_inner,
-            (sx1+0.3)-clx0, (sy1-sy0)+0.6, (PV["screen_back"]+pcb_rest_z)-front_floor_inner)
+            (sx1+0.3)-clx0, (sy1-sy0)+0.6, (PV["screen_back"]+pcb_rest_z+PV["screen_cal"])-front_floor_inner)
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
