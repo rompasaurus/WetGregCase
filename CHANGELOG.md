@@ -47,6 +47,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v39 | Front-cover outer lip at the USB notch (`Lip_FC_USB`, `usb_lip_h`=2.1): fills the lower part of the backplate's USB cutout flush with the outer surface, covering the bead/seam; +0.4 mm back-cover depth (`back_above` 8.5 → 8.9) so the Pico clears the shell |
 | v40 | Raise the power-switch slot 1 mm (`sw_z0` 1.0 → 2.0, `sw_z1` 3.3 → 4.3); confirmed it cuts clean through the −Y wall |
 | v41 | Reduce the USB-C cutout depth 0.6 mm (`usb_z1` 7.0 → 6.4); thicker ~2.5 mm cap roof, still clears the connector |
+| v50 | Fix the M2 drill-notch z: it used the pre-raise rib bottom (`-ld`), which after the board raise sliced through the front wall → holes at the screen top. Now tracks the raised rib (`pcb_rest_z - ld`); front face solid again |
 | v49 | Fix two v48 regressions: board now sits **exactly flush** with the bead top (`board_rest_z` 2.13 → 2.10 = bead top); and **restore the USB-C + Pico** to the reference assembly — the header-strip threshold (ZMax>6) now rises with `board_rest_z`, so the raised Pico/USB are no longer deleted as if they were header pins |
 | v48 | **Board now rests ON the bead** (`board_rest_z` 0.63 → 2.13): the board bottom sits ~at the bead top, lifting the USB-C base (2.80) clear of the tongue top (2.8). So the **USB tongue relief is removed entirely** (`Cut_FC_USB` gone) — the bead/tongue fully connect under the connector — and the **lip meets the bead top** (`usb_lip_h` → 2.10). Back deepened (`back_above` → 10.2) so the now-higher Pico clears; front thinner (`screen_top` → 8.91); `usb_z1` → 7.2 for the raised connector. Overall 19.31 → 19.11 |
 | v47 | **Raise the board so the PCB top is flush with the bead top** (new `board_rest_z`=0.63; bead restored to the lap centre). Lifts the USB-C/switch into the backplate (accessible) and lets the front USB lip grow (`usb_lip_h` 0.67 → 1.3). Front thinner (`screen_top` → 10.41; overall 19.94 → 19.31); Pico still clears (back unchanged). Slider tab thinner + rounded (more flush to the side) and tracks the raised switch |
@@ -56,7 +57,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v43 | **Front cover 1.36 mm thinner** to match reality: real screen sits 8.64 mm from the board, so `screen_top` 12.4 → 11.04 (`ledge_depth` → 8.64). Window inner now meets the screen so the board seats on the shelf; overall height 21.3 → 19.94 |
 | v42 | **Calibrate the reference assembly to reality.** Keep the screen at its authoritative STEP position (`screen_cal`=0; was shoved −1.36 mm onto the case front floor) → it now sits ~1.36 mm behind the window as in reality. Extend the rib's screen-clearance to the real screen back (`screen_back`). Fix the USB-C colliding with the front cover: lower the lip below the connector (`usb_lip_h` 2.1 → 0.5) and re-add a narrow tongue relief at the USB window (lip + flanking beads kept) |
 
-## Current key dimensions (v49)
+## Current key dimensions (v50)
 
 | | |
 |---|---|
