@@ -41,7 +41,7 @@ PARAMS = [
     ("board_w",   96.80, "Board width X (1 mm shorter than the KiCad nominal)"),
     ("board_h",   42.012,"Board height Y"),
     ("board_t",    1.47, "PCB thickness (real, from STEP)"),
-    ("board_rest_z",0.63, "Board bottom rests this high above the seam (= bead_top - board_t, so the PCB top is flush with the bead top; raises USB-C/switch into the backplate)"),
+    ("board_rest_z",2.13, "Board bottom rests this high (~ bead top): the board sits ON the bead, lifting the USB-C base (2.80) clear of the tongue top (2.8) so NO USB relief is needed and the bead fully connects"),
     ("board_r",    5.00, "Board corner radius"),
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
@@ -49,13 +49,13 @@ PARAMS = [
     ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top", 10.41,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
+    ("screen_top",  8.91,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
     ("screen_cal",  0.00,"Screen-position calibration in the reference assembly (0 = real STEP position; + moves the screen toward the board)"),
     ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
-    ("back_above", 8.90, "Backplate depth above the seam (houses USB-C + Pico; +1 micro-USB, +0.4 Pico-to-shell clearance)"),
+    ("back_above",10.20, "Backplate depth above the seam (houses USB-C + Pico; raised so the Pico (top ~7.4 after board_rest_z) clears the shell with ~0.4mm)"),
     ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
@@ -85,9 +85,9 @@ PARAMS = [
     ("usb_cy",    21.00, "USB-C centre Y"),
     ("usb_w",      9.70, "USB-C opening width Y"),
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
-    ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
+    ("usb_z1",     7.20, "USB-C opening Z top (connector now reaches ~7.0 after board_rest_z; keep above that, below cap top 9.8)."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
-    ("usb_lip_h",  1.30, "Front-cover outer lip height at the USB notch = USB-C connector bottom (0.67) + board_rest_z. Covers the cutout, meets the raised connector."),
+    ("usb_lip_h",  2.10, "Front-cover outer lip height at the USB notch = bead top: the lip meets the top of the bead (connector now sits above the bead)."),
     # --- Power slide switch MSK12C02 (SPDT 8x2.8x1.4) on -Y + printed slider ---
     ("sw_cx",     50.55, "Switch actuator centre X (mid-travel)"),
     ("sw_act_y",  -1.80, "Actuator face Y (toward -Y; ~0.9mm inside the -2.7 outer wall)"),
@@ -446,13 +446,8 @@ def build_front_cover():
     lip.setExpression("Width",  f"{SP('usb_w')} - 2 * {SP('lap_fit')}")
     lip.setExpression("Height", SP("usb_lip_h"))
     DOCO.recompute()
-    # 11f. Relieve the tongue ONLY where the USB-C connector overhangs the board edge
-    #      (connector reaches x=98.58, z 0.67..4.89). Cut spans the USB y-window and
-    #      stops at the tongue outer (x = BW+O_TNG) so the outer lip survives; the
-    #      +X flanking beads sit outside this window and survive too.
-    sub_box(body, "Cut_FC_USB", BW+C-1.0, PV["usb_cy"]-PV["usb_w"]/2, 0.0,
-            (BW+O_TNG)-(BW+C-1.0), PV["usb_w"], PV["lap"],
-            Wd=SP("usb_w"), L=f"{SP('tongue_t')} + 1.0", H=SP("lap"))
+    # (no USB relief: the board rests ON the bead, so the USB-C base (~2.80) sits at/above
+    #  the tongue top (2.8) and clears it -> the bead/tongue fully connect under the connector)
     # 12. joystick through-hole
     sub_cyl(body, "Cut_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z-1.0,
             PV["joy_hole_d"]/2, PV["screen_top"]+PV["ftop"]+2.0)
