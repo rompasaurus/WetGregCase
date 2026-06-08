@@ -40,7 +40,7 @@ PARAMS = [
     # --- Board (from KiCad) ---
     ("board_w",   96.80, "Board width X (1 mm shorter than the KiCad nominal)"),
     ("board_h",   42.012,"Board height Y"),
-    ("board_t",    1.60, "PCB thickness"),
+    ("board_t",    1.47, "PCB thickness (real, from STEP) = PCB top above the shelf"),
     ("board_r",    5.00, "Board corner radius"),
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
@@ -136,7 +136,7 @@ def rad_of(o):                    # corner radius of a feature at offset o
 O_IN  = C
 O_TNG = C + PV["tongue_t"]
 O_REL = C + PV["tongue_t"] + PV["lap_fit"]
-bead_z = seam_z + (PV["lap"] - PV["bead_h"]) / 2.0    # snap bead/groove centre in the lap band
+bead_z = PV["board_t"] - PV["bead_h"]    # bead TOP flush with the PCB top (board_t above the shelf)
 
 # =====================================================================
 # HELPERS
