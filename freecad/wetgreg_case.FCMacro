@@ -55,7 +55,7 @@ PARAMS = [
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
-    ("back_above", 8.10, "Backplate depth above the seam. -2mm: the Pico is modelled as a solid 3.7mm block but the real Pico is mostly ~1mm PCB + low parts, so the dead space above it is removed. (Model shows the Pico block touching the cap - an artifact.)"),
+    ("back_above", 9.10, "Backplate depth above the seam (net -1mm from the Pico-block max: removes most dead space but keeps 1mm headroom)."),
     ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
@@ -517,6 +517,12 @@ def build_backplate():
     yg0 = PV["bat_cx"]-PV["bat_gap_w"]/2-1.0
     sub_box(body, "Cut_BP_ShelfYedge", yg0, -(C+0.1), board_top_z-0.5,
             (PV["sw_cx"]+5.0)-yg0, (C+0.1)+2.5, sh_h+1.0)
+    # gap the +Y (top) shelf at the middle for the accelerometer (board lays flat)
+    sub_box(body, "Cut_BP_ShelfAccel", 30.0, 38.0, board_top_z-0.5,
+            16.0, (BH+C+0.1)-38.0, sh_h+1.0)
+    # gap the shelf at the +X/-Y corner (by the USB-C) for the LEDs
+    sub_box(body, "Cut_BP_ShelfLED", 85.0, -(C+0.1), board_top_z-0.5,
+            8.0, (C+0.1)+4.0, sh_h+1.0)
     return body
 
 # =====================================================================

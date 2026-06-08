@@ -47,6 +47,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v39 | Front-cover outer lip at the USB notch (`Lip_FC_USB`, `usb_lip_h`=2.1): fills the lower part of the backplate's USB cutout flush with the outer surface, covering the bead/seam; +0.4 mm back-cover depth (`back_above` 8.5 → 8.9) so the Pico clears the shell |
 | v40 | Raise the power-switch slot 1 mm (`sw_z0` 1.0 → 2.0, `sw_z1` 3.3 → 4.3); confirmed it cuts clean through the −Y wall |
 | v41 | Reduce the USB-C cutout depth 0.6 mm (`usb_z1` 7.0 → 6.4); thicker ~2.5 mm cap roof, still clears the connector |
+| v55 | Back cover +1 mm (`back_above` 8.1 → 9.1, overall 20.93). Cut the +Y (top) shelf away at the middle for the accelerometer so the board lays flat, and gap the shelf at the +X/−Y corner (by the USB-C) for the LEDs (both start at the wall inner — no side holes) |
 | v54 | Fix the back shelf's switch/battery gap cutting a **hole in the −Y side wall** (the gap started outside the wall) — gaps now start at the wall inner and only remove the inner shelf. Reduce the back cover 2 mm (`back_above` 10.1 → 8.1): the Pico is modelled as a solid 3.7 mm block but the real Pico is mostly thin PCB, so the dead space above it is removed (overall 21.93 → 19.93) |
 | v53 | (a) Front: carve 1 mm more into the inner −X wall at the screen edge (`scr_carve_in`; leaves 1.2 mm wall, no pop-through). (b) Bead +1 mm taller (`bead_h` 1.2 → 2.2, centred so the USB-C still clears the tongue; snap still seats). (c) **Back perimeter support shelf** (`Pad_BP_Shelf`) clamping the board's outer edge between the front rib and the shelf, with M2 standoff notches, USB-C/switch/battery gaps, and an open centre clearing the Pico/accel/LEDs/caps |
 | v52 | Trim the back cover to its minimum closed depth (`back_above` 10.2 → 10.1). The Pico (7.36) is the tallest +Z part — 0.37 mm above the USB-C (6.99) — so the closed back is set by the Pico, not the USB-C; ceiling now clears the Pico by 0.35 mm |
@@ -61,14 +62,14 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v43 | **Front cover 1.36 mm thinner** to match reality: real screen sits 8.64 mm from the board, so `screen_top` 12.4 → 11.04 (`ledge_depth` → 8.64). Window inner now meets the screen so the board seats on the shelf; overall height 21.3 → 19.94 |
 | v42 | **Calibrate the reference assembly to reality.** Keep the screen at its authoritative STEP position (`screen_cal`=0; was shoved −1.36 mm onto the case front floor) → it now sits ~1.36 mm behind the window as in reality. Extend the rib's screen-clearance to the real screen back (`screen_back`). Fix the USB-C colliding with the front cover: lower the lip below the connector (`usb_lip_h` 2.1 → 0.5) and re-add a narrow tongue relief at the USB window (lip + flanking beads kept) |
 
-## Current key dimensions (v54)
+## Current key dimensions (v55)
 
 | | |
 |---|---|
 | Outer footprint | 102.5 × 47.4 mm (−X brought in to clear the screen +0.2) |
-| Overall height | 19.93 mm |
+| Overall height | 20.93 mm |
 | Front-cover depth | `screen_top` = 11.83 mm (real screen 8.64 − board_rest_z + wall) |
-| Backplate depth | `back_above` = 8.1 mm (USB-C + Pico; clears micro-USB + Pico-to-shell) |
+| Backplate depth | `back_above` = 9.1 mm (USB-C + Pico; clears micro-USB + Pico-to-shell) |
 | Wall / curves | 2.4 mm walls · r7.7 corners · r6 front **and** back edge curves |
 | Screen window | X 11.6–63.6, Y 7.1–35.1 (inside the screw holes; long edges shaved) |
 | Closure | flush lap + discrete snap beads (2/long wall + 1 −X + 2 +X flanking the USB-C = 7), 0.8 mm projection, tongue continuous at the USB/switch |
