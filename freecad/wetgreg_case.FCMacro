@@ -55,7 +55,7 @@ PARAMS = [
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
-    ("back_above",10.10, "Backplate depth above the seam = Pico top (~7.36) + ~0.35 clearance + wall: the MINIMUM closed back that still encloses the Pico (the tallest +Z part, 0.37mm above the USB-C)"),
+    ("back_above", 8.10, "Backplate depth above the seam. -2mm: the Pico is modelled as a solid 3.7mm block but the real Pico is mostly ~1mm PCB + low parts, so the dead space above it is removed. (Model shows the Pico block touching the cap - an artifact.)"),
     ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
@@ -506,14 +506,17 @@ def build_backplate():
     # notch the shelf at the 4 M2 standoff holes (screws/standoffs pass through)
     for i, (hx, hy) in enumerate(EINK_HOLES):
         sub_cyl(body, f"Cut_BP_Standoff{i}", hx, hy, board_top_z-0.5, PV["standoff_clr"], sh_h+1.0)
-    # gap the shelf for the edge-mounted USB-C (+X)
-    sub_box(body, "Cut_BP_ShelfUSB", BW-3.0, PV["usb_cy"]-PV["usb_w"]/2-0.6, board_top_z-0.5,
-            5.0, PV["usb_w"]+1.2, sh_h+1.0)
-    # gap the shelf for the -Y edge parts (battery connector + power switch). Reach in
-    # past the shelf band (to y=+2.5) so it fully clears the switch body (to y~2.4).
+    # gap only the INNER shelf for the edge parts (start at the wall inner, never cut
+    # the side wall itself - the USB opening / switch slot already pierce the wall).
+    # USB-C (+X): remove the shelf band (wall inner -> reach inward)
+    ux1 = BW + C + 0.1                                  # just inside the +X wall inner
+    sub_box(body, "Cut_BP_ShelfUSB", ux1-(PV["back_shelf_reach"]+0.6), PV["usb_cy"]-PV["usb_w"]/2-0.6,
+            board_top_z-0.5, PV["back_shelf_reach"]+0.6, PV["usb_w"]+1.2, sh_h+1.0)
+    # -Y switch + battery: from just inside the -Y wall inner, in to y=+2.5 (clears the
+    # switch body to ~2.4) - does NOT reach the wall outer, so no hole in the side.
     yg0 = PV["bat_cx"]-PV["bat_gap_w"]/2-1.0
-    sub_box(body, "Cut_BP_ShelfYedge", yg0, -(C+W)-0.5, board_top_z-0.5,
-            (PV["sw_cx"]+5.0)-yg0, W+C+3.0, sh_h+1.0)
+    sub_box(body, "Cut_BP_ShelfYedge", yg0, -(C+0.1), board_top_z-0.5,
+            (PV["sw_cx"]+5.0)-yg0, (C+0.1)+2.5, sh_h+1.0)
     return body
 
 # =====================================================================
