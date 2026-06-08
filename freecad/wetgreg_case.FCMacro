@@ -40,7 +40,8 @@ PARAMS = [
     # --- Board (from KiCad) ---
     ("board_w",   96.80, "Board width X (1 mm shorter than the KiCad nominal)"),
     ("board_h",   42.012,"Board height Y"),
-    ("board_t",    1.47, "PCB thickness (real, from STEP) = PCB top above the shelf"),
+    ("board_t",    1.47, "PCB thickness (real, from STEP)"),
+    ("board_rest_z",0.63, "Board bottom rests this high above the seam (= bead_top - board_t, so the PCB top is flush with the bead top; raises USB-C/switch into the backplate)"),
     ("board_r",    5.00, "Board corner radius"),
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
@@ -48,7 +49,7 @@ PARAMS = [
     ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
-    ("screen_top", 11.04,"Front-cover depth = real screen front (8.64 below the board) + wall. Window inner meets the screen so the board seats on the shelf."),
+    ("screen_top", 10.41,"Front-cover depth = 8.636 (real screen below board) - board_rest_z + wall. Window inner meets the (raised) screen."),
     ("screen_cal",  0.00,"Screen-position calibration in the reference assembly (0 = real STEP position; + moves the screen toward the board)"),
     ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
     ("front_curve",6.00, "Aggressive front-edge curve radius"),
@@ -86,7 +87,7 @@ PARAMS = [
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
     ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
-    ("usb_lip_h",  0.67, "Front-cover outer lip height at the USB notch (flush filler covering the cutout, meets the USB-C connector bottom at z=0.67)."),
+    ("usb_lip_h",  1.30, "Front-cover outer lip height at the USB notch = USB-C connector bottom (0.67) + board_rest_z. Covers the cutout, meets the raised connector."),
     # --- Power slide switch MSK12C02 (SPDT 8x2.8x1.4) on -Y + printed slider ---
     ("sw_cx",     50.55, "Switch actuator centre X (mid-travel)"),
     ("sw_act_y",  -1.80, "Actuator face Y (toward -Y; ~0.9mm inside the -2.7 outer wall)"),
@@ -97,7 +98,7 @@ PARAMS = [
     ("sw_knob_proj",0.60, "Actuator knob protrusion out the -Y face (ASSUMED)"),
     ("sld_neck_w", 3.00, "Slider neck width X (rides in the slot)"),
     ("sld_tab_w",  9.00, "Slider thumb-tab width X (big grip)"),
-    ("sld_tab_t",  2.00, "Slider thumb-tab thickness outside the wall (Y)"),
+    ("sld_tab_t",  1.20, "Slider thumb-tab protrusion outside the wall (Y) - kept small/flush"),
     ("sld_z0",     0.70, "Slider/slot Z bottom (kept >0 to clear the front cover)"),
     ("sld_z1",     5.20, "Slider thumb-tab Z top"),
     ("sld_slot_z1",3.60, "Slot Z top (neck window; exposes the actuator)"),
@@ -129,7 +130,7 @@ front_outer_z = -PV["screen_top"]                 # -11.4
 front_floor_inner = front_outer_z + PV["wall"]    # -9.4 (front floor inner face)
 seam_z        =  PV["ftop"]                        # 5.5  (front-plate top / clip seam, above the Pico)
 base_top_z    =  seam_z + PV["back_above"]         # 7.5  (backplate cap top)
-pcb_rest_z    =  0.0                               # board bottom rests on the front-plate ledge
+pcb_rest_z    =  PV["board_rest_z"]                # board bottom rests this high above the seam (above the bead)
 EINK_HOLES = [(2.4, 9.0), (2.4, 33.4), (68.8, 9.0), (68.8, 33.4)]   # M2 mount holes (local)
 # outer footprint
 OX0, OY0 = -(EXT + C + W), -(C + W)
@@ -146,7 +147,7 @@ def rad_of(o):                    # corner radius of a feature at offset o
 O_IN  = C
 O_TNG = C + PV["tongue_t"]
 O_REL = C + PV["tongue_t"] + PV["lap_fit"]
-bead_z = PV["board_t"] - PV["bead_h"]    # bead TOP flush with the PCB top (board_t above the shelf)
+bead_z = seam_z + (PV["lap"] - PV["bead_h"]) / 2.0    # bead centred in the lap; its TOP = the PCB top (the board is raised to meet it)
 
 # =====================================================================
 # HELPERS
@@ -397,7 +398,7 @@ def build_front_cover():
     #    position rib outer falls inside the inward-curving wall, so it merges
     #    (no gap, no overhang, no poke-through). Top = Z0 (PCB rests here).
     ld = PV["ledge_depth"]
-    ledge = frame_pad(body, "Pad_FC_Ledge", -ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
+    ledge = frame_pad(body, "Pad_FC_Ledge", pcb_rest_z - ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
     lth = ld   # downstream cuts (battery gap, drill notches) clear the full rib
     # carve the SCREEN space so the rib clears the REAL screen depth on the -X edge:
     # from the front floor up to just past the screen back (screen_back); the rib
@@ -405,7 +406,7 @@ def build_front_cover():
     sx0, sx1, sy0, sy1 = -0.40, 71.60, 6.10, 36.10        # screen module footprint
     clx0 = max(sx0-0.3, IX0)   # clear the screen but don't breach the (now-tight) -X wall
     sub_box(body, "Cut_FC_ScreenClear", clx0, sy0-0.3, front_floor_inner,
-            (sx1+0.3)-clx0, (sy1-sy0)+0.6, PV["screen_back"]-front_floor_inner)
+            (sx1+0.3)-clx0, (sy1-sy0)+0.6, (PV["screen_back"]+pcb_rest_z)-front_floor_inner)
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
@@ -491,7 +492,7 @@ def build_backplate():
     # power-switch slider slot (-Y): a window the slider neck rides in, exposing the
     # MSK12C02 actuator. X = neck + travel + clearance; Z = sld_z0..sld_slot_z1.
     slot_xw = PV["sld_neck_w"] + PV["sw_travel"] + 2*PV["sld_fit"]
-    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W)-1.0, PV["sld_z0"],
+    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W)-1.0, PV["sld_z0"]+pcb_rest_z,
             slot_xw, W+2.0, PV["sld_slot_z1"]-PV["sld_z0"],
             H=f"{SP('sld_slot_z1')} - {SP('sld_z0')}")
     return body
@@ -522,18 +523,29 @@ def build_thumbpiece():
 # =====================================================================
 def build_switch_slider():
     body = DOCO.addObject("PartDesign::Body", "SwitchSlider")
-    cx = PV["sw_cx"]; ow = -(C + W); fit = PV["sld_fit"]
-    # thumb tab OUTSIDE the -Y wall (big grip; wider/taller than the slot so it
-    # covers the slot and can't push inward)
-    add_box(body, "Sld_Tab", cx-PV["sld_tab_w"]/2, ow-PV["sld_tab_t"], PV["sld_z0"],
-            PV["sld_tab_w"], PV["sld_tab_t"], PV["sld_z1"]-PV["sld_z0"])
+    cx = PV["sw_cx"]; ow = -(C + W); fit = PV["sld_fit"]; rz = pcb_rest_z
+    z0 = PV["sld_z0"] + rz                                  # tracks the raised switch
+    # thin thumb tab OUTSIDE the -Y wall, kept flush-ish to the side (small protrusion)
+    tab = add_box(body, "Sld_Tab", cx-PV["sld_tab_w"]/2, ow-PV["sld_tab_t"], z0,
+                  PV["sld_tab_w"], PV["sld_tab_t"], PV["sld_z1"]-PV["sld_z0"])
+    # round/curve the outer tab edges so it follows the case (no sharp block)
+    try:
+        re = [f"Edge{i+1}" for i,e in enumerate(tab.Shape.Edges)
+              if all(abs(v.Point.y-(ow-PV["sld_tab_t"]))<1e-3 for v in e.Vertexes)]
+        if re:
+            ch = body.newObject("PartDesign::Fillet", "Sld_TabRound")
+            ch.Base = (tab, re); ch.Radius = min(PV["sld_tab_t"]*0.9, 0.9)
+            DOCO.recompute()
+            if not ch.Shape.isValid(): body.removeObject(ch); DOCO.recompute()
+    except Exception:
+        pass
     # neck THROUGH the slot, reaching the actuator face (rides with sld_fit play)
-    neck_dy = PV["sw_act_y"] - ow                     # -1.8 - (-2.7) = 0.9
-    add_box(body, "Sld_Neck", cx-PV["sld_neck_w"]/2, ow, PV["sld_z0"]+fit,
+    neck_dy = PV["sw_act_y"] - ow
+    add_box(body, "Sld_Neck", cx-PV["sld_neck_w"]/2, ow, z0+fit,
             PV["sld_neck_w"], neck_dy, (PV["sld_slot_z1"]-PV["sld_z0"])-2*fit)
     # grip pocket straddling the actuator knob in X -> sliding the tab slides the switch
     kp_w = PV["sw_knob_w"] + fit
-    sub_box(body, "Sld_Grip", cx-kp_w/2, PV["sw_act_y"]-PV["sw_knob_proj"], PV["sw_act_z0"]-0.3,
+    sub_box(body, "Sld_Grip", cx-kp_w/2, PV["sw_act_y"]-PV["sw_knob_proj"], PV["sw_act_z0"]+rz-0.3,
             kp_w, PV["sw_knob_proj"]+0.3, (PV["sw_act_z1"]-PV["sw_act_z0"])+0.6)
     return body
 
@@ -545,7 +557,8 @@ def import_assembly():
     if not os.path.exists(path):
         return None
     raw = Part.Shape(); raw.read(path)
-    raw.translate(V(-46.70, 88.00, 0.0))
+    # XY into the local frame; +Z raises the whole board to its rest height (board_rest_z)
+    raw.translate(V(-46.70, 88.00, PV["board_rest_z"]))
     # Calibration: keep the screen at its AUTHORITATIVE STEP position (reality).
     # The screen's real front face is at z=-8.64; the case window-frame inner face is
     # at front_outer_z+wall=-10.0, so the real screen sits ~1.36mm behind the frame
