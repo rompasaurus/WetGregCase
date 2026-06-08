@@ -45,7 +45,7 @@ PARAMS = [
     # --- Fit / walls ---
     ("clear",      0.30, "PCB-to-wall clearance per side"),
     ("wall",       2.40, "Wall thickness (+0.4 for snap-bead rigidity)"),
-    ("ext_xmin",   1.20, "Case extension on -X (just past the screen edge; front = lip + PCB)"),
+    ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 11.04,"Front-cover depth = real screen front (8.64 below the board) + wall. Window inner meets the screen so the board seats on the shelf."),
@@ -86,7 +86,7 @@ PARAMS = [
     ("usb_z0",     0.00, "USB-C opening Z bottom (= lip top)"),
     ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
-    ("usb_lip_h",  0.50, "Front-cover outer lip height at the USB notch (flush seam filler). MUST stay below the USB-C connector bottom (z=0.67) or it fouls the connector."),
+    ("usb_lip_h",  0.67, "Front-cover outer lip height at the USB notch (flush filler covering the cutout, meets the USB-C connector bottom at z=0.67)."),
     # --- Power-switch slot (-Y) ---
     ("sw_x0",     47.50, "Switch slot X min"),
     ("sw_x1",     53.50, "Switch slot X max"),
@@ -393,8 +393,9 @@ def build_front_cover():
     # from the front floor up to just past the screen back (screen_back); the rib
     # remains above that (screen_back -> 0) to support the PCB.
     sx0, sx1, sy0, sy1 = -0.40, 71.60, 6.10, 36.10        # screen module footprint
-    sub_box(body, "Cut_FC_ScreenClear", sx0-0.3, sy0-0.3, front_floor_inner,
-            (sx1-sx0)+0.6, (sy1-sy0)+0.6, PV["screen_back"]-front_floor_inner)
+    clx0 = max(sx0-0.3, IX0)   # clear the screen but don't breach the (now-tight) -X wall
+    sub_box(body, "Cut_FC_ScreenClear", clx0, sy0-0.3, front_floor_inner,
+            (sx1+0.3)-clx0, (sy1-sy0)+0.6, PV["screen_back"]-front_floor_inner)
     # 6. screen window (sized inside the screw holes)
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
