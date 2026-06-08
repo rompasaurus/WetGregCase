@@ -62,6 +62,9 @@ PARAMS = [
     ("ledge_th",   1.20, "Ledge thickness"),
     ("ledge_depth",11.53,"Ledge rib depth = pcb_rest_z + screen_top - wall: runs from the board rest down to the front floor, merging with the curved wall"),
     ("shelf_w",    1.60, "(legacy) board-edge reach"),
+    ("back_shelf_reach", 2.50, "Back perimeter shelf reach in from the wall (clamps the board top edge)"),
+    ("standoff_clr",     2.50, "Clearance radius at each M2 standoff hole (front + back notches)"),
+    ("scr_carve_in",     1.00, "Extra screen-clearance carved into the inner -X wall (board/screen fit)"),
     # --- Battery connector gap (CN1 on the screen side) ---
     ("bat_cx",    41.50, "Battery connector CN1 centre X"),
     ("bat_cy",     2.50, "Battery connector CN1 centre Y"),
@@ -73,7 +76,7 @@ PARAMS = [
     ("tongue_t",   1.00, "Tongue thickness (thin -> flexes to snap)"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
     ("bead_proj",  0.80, "Snap bead projection past the tongue (interference = proj-lap_fit; +0.4 for clasp grip)"),
-    ("bead_h",     1.20, "Snap bead height (Z)"),
+    ("bead_h",     2.20, "Snap bead height (Z) (+1mm, centred in the lap; stays under the tongue top so the USB-C still clears)"),
     ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
@@ -131,6 +134,7 @@ front_floor_inner = front_outer_z + PV["wall"]    # -9.4 (front floor inner face
 seam_z        =  PV["ftop"]                        # 5.5  (front-plate top / clip seam, above the Pico)
 base_top_z    =  seam_z + PV["back_above"]         # 7.5  (backplate cap top)
 pcb_rest_z    =  PV["board_rest_z"]                # board bottom rests this high above the seam (above the bead)
+board_top_z   =  pcb_rest_z + PV["board_t"]        # board backside (+Z); the back shelf clamps here
 EINK_HOLES = [(2.4, 9.0), (2.4, 33.4), (68.8, 9.0), (68.8, 33.4)]   # M2 mount holes (local)
 # outer footprint
 OX0, OY0 = -(EXT + C + W), -(C + W)
@@ -404,7 +408,9 @@ def build_front_cover():
     # from the front floor up to just past the screen back (screen_back); the rib
     # remains above that (screen_back -> 0) to support the PCB.
     sx0, sx1, sy0, sy1 = -0.40, 71.60, 6.10, 36.10        # screen module footprint
-    clx0 = max(sx0-0.3, IX0)   # clear the screen but don't breach the (now-tight) -X wall
+    # carve scr_carve_in (1mm) into the inner -X wall for the screen edge/standoffs so
+    # the board seats; the outer wall stays (2.4 - 1.0 = 1.4mm left -> no pop-through)
+    clx0 = IX0 - PV["scr_carve_in"]
     sub_box(body, "Cut_FC_ScreenClear", clx0, sy0-0.3, front_floor_inner,
             (sx1+0.3)-clx0, (sy1-sy0)+0.6, (PV["screen_back"]+pcb_rest_z+PV["screen_cal"])-front_floor_inner)
     # 6. screen window (sized inside the screw holes)
@@ -492,6 +498,22 @@ def build_backplate():
     sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W)-1.0, PV["sld_z0"]+pcb_rest_z,
             slot_xw, W+2.0, PV["sld_slot_z1"]-PV["sld_z0"],
             H=f"{SP('sld_slot_z1')} - {SP('sld_z0')}")
+    # 9. perimeter SUPPORT SHELF: steps in over the board's outer edge from the board
+    #    top up to the inner ceiling, so the board is clamped between the front rib
+    #    (below) and this shelf (above). Open centre clears the Pico + accel/LEDs/caps.
+    sh_h = (base_top_z - W) - board_top_z
+    frame_pad(body, "Pad_BP_Shelf", board_top_z, sh_h, C, C - PV["back_shelf_reach"])
+    # notch the shelf at the 4 M2 standoff holes (screws/standoffs pass through)
+    for i, (hx, hy) in enumerate(EINK_HOLES):
+        sub_cyl(body, f"Cut_BP_Standoff{i}", hx, hy, board_top_z-0.5, PV["standoff_clr"], sh_h+1.0)
+    # gap the shelf for the edge-mounted USB-C (+X)
+    sub_box(body, "Cut_BP_ShelfUSB", BW-3.0, PV["usb_cy"]-PV["usb_w"]/2-0.6, board_top_z-0.5,
+            5.0, PV["usb_w"]+1.2, sh_h+1.0)
+    # gap the shelf for the -Y edge parts (battery connector + power switch). Reach in
+    # past the shelf band (to y=+2.5) so it fully clears the switch body (to y~2.4).
+    yg0 = PV["bat_cx"]-PV["bat_gap_w"]/2-1.0
+    sub_box(body, "Cut_BP_ShelfYedge", yg0, -(C+W)-0.5, board_top_z-0.5,
+            (PV["sw_cx"]+5.0)-yg0, W+C+3.0, sh_h+1.0)
     return body
 
 # =====================================================================

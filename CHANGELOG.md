@@ -47,6 +47,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v39 | Front-cover outer lip at the USB notch (`Lip_FC_USB`, `usb_lip_h`=2.1): fills the lower part of the backplate's USB cutout flush with the outer surface, covering the bead/seam; +0.4 mm back-cover depth (`back_above` 8.5 → 8.9) so the Pico clears the shell |
 | v40 | Raise the power-switch slot 1 mm (`sw_z0` 1.0 → 2.0, `sw_z1` 3.3 → 4.3); confirmed it cuts clean through the −Y wall |
 | v41 | Reduce the USB-C cutout depth 0.6 mm (`usb_z1` 7.0 → 6.4); thicker ~2.5 mm cap roof, still clears the connector |
+| v53 | (a) Front: carve 1 mm more into the inner −X wall at the screen edge (`scr_carve_in`; leaves 1.2 mm wall, no pop-through). (b) Bead +1 mm taller (`bead_h` 1.2 → 2.2, centred so the USB-C still clears the tongue; snap still seats). (c) **Back perimeter support shelf** (`Pad_BP_Shelf`) clamping the board's outer edge between the front rib and the shelf, with M2 standoff notches, USB-C/switch/battery gaps, and an open centre clearing the Pico/accel/LEDs/caps |
 | v52 | Trim the back cover to its minimum closed depth (`back_above` 10.2 → 10.1). The Pico (7.36) is the tallest +Z part — 0.37 mm above the USB-C (6.99) — so the closed back is set by the Pico, not the USB-C; ceiling now clears the Pico by 0.35 mm |
 | v51 | Deepen the front cover for the real screen stack: measured **13 mm** top-of-screen to PCB-backside (STEP model had it ~2.9 mm too close). `screen_top` 8.94 → 11.83, `screen_cal` 0 → −2.89 (shift screen out to reality), `ledge_depth` → 11.53. Screen now sits just behind the window, no poke; stack verified 13.00 mm. Overall 19.14 → 22.03 |
 | v50 | Fix the M2 drill-notch z: it used the pre-raise rib bottom (`-ld`), which after the board raise sliced through the front wall → holes at the screen top. Now tracks the raised rib (`pcb_rest_z - ld`); front face solid again |
@@ -59,7 +60,7 @@ Every part is driven by the `Parameters` spreadsheet in `freecad/wetgreg_case.FC
 | v43 | **Front cover 1.36 mm thinner** to match reality: real screen sits 8.64 mm from the board, so `screen_top` 12.4 → 11.04 (`ledge_depth` → 8.64). Window inner now meets the screen so the board seats on the shelf; overall height 21.3 → 19.94 |
 | v42 | **Calibrate the reference assembly to reality.** Keep the screen at its authoritative STEP position (`screen_cal`=0; was shoved −1.36 mm onto the case front floor) → it now sits ~1.36 mm behind the window as in reality. Extend the rib's screen-clearance to the real screen back (`screen_back`). Fix the USB-C colliding with the front cover: lower the lip below the connector (`usb_lip_h` 2.1 → 0.5) and re-add a narrow tongue relief at the USB window (lip + flanking beads kept) |
 
-## Current key dimensions (v52)
+## Current key dimensions (v53)
 
 | | |
 |---|---|
