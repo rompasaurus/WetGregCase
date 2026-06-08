@@ -87,11 +87,21 @@ PARAMS = [
     ("usb_z1",     6.40, "USB-C opening Z top. < cap top (8.9) leaves a solid back roof (8.9-this); >= 8.9 cuts through to the back face. Connector reaches ~4.9, so keep above ~5.5."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     ("usb_lip_h",  0.67, "Front-cover outer lip height at the USB notch (flush filler covering the cutout, meets the USB-C connector bottom at z=0.67)."),
-    # --- Power-switch slot (-Y) ---
-    ("sw_x0",     47.50, "Switch slot X min"),
-    ("sw_x1",     53.50, "Switch slot X max"),
-    ("sw_z0",      2.00, "Switch slot Z bottom (raised 1mm)"),
-    ("sw_z1",      4.30, "Switch slot Z top (raised 1mm)"),
+    # --- Power slide switch MSK12C02 (SPDT 8x2.8x1.4) on -Y + printed slider ---
+    ("sw_cx",     50.55, "Switch actuator centre X (mid-travel)"),
+    ("sw_act_y",  -1.80, "Actuator face Y (toward -Y; ~0.9mm inside the -2.7 outer wall)"),
+    ("sw_act_z0",  1.06, "Actuator Z bottom (from model)"),
+    ("sw_act_z1",  3.07, "Actuator Z top (from model)"),
+    ("sw_travel",  1.50, "MSK12C02 actuator travel X (ASSUMED - confirm w/ datasheet)"),
+    ("sw_knob_w",  1.20, "Actuator knob width X for the grip pocket (ASSUMED)"),
+    ("sw_knob_proj",0.60, "Actuator knob protrusion out the -Y face (ASSUMED)"),
+    ("sld_neck_w", 3.00, "Slider neck width X (rides in the slot)"),
+    ("sld_tab_w",  9.00, "Slider thumb-tab width X (big grip)"),
+    ("sld_tab_t",  2.00, "Slider thumb-tab thickness outside the wall (Y)"),
+    ("sld_z0",     0.70, "Slider/slot Z bottom (kept >0 to clear the front cover)"),
+    ("sld_z1",     5.20, "Slider thumb-tab Z top"),
+    ("sld_slot_z1",3.60, "Slot Z top (neck window; exposes the actuator)"),
+    ("sld_fit",    0.30, "Slider-to-slot sliding clearance"),
     # --- Joystick / boss / thumbpiece ---
     ("joy_cx",    81.55, "Joystick centre X"),
     ("joy_cy",    21.30, "Joystick centre Y"),
@@ -478,9 +488,12 @@ def build_backplate():
             W+C+PV["back_curve"]+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
             Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
     # 8. power-switch slot (-Y)
-    sub_box(body, "Cut_BP_Switch", PV["sw_x0"], -(C+W)-1.0, PV["sw_z0"],
-            PV["sw_x1"]-PV["sw_x0"], W+2.0, PV["sw_z1"]-PV["sw_z0"],
-            L=f"{SP('sw_x1')} - {SP('sw_x0')}", H=f"{SP('sw_z1')} - {SP('sw_z0')}")
+    # power-switch slider slot (-Y): a window the slider neck rides in, exposing the
+    # MSK12C02 actuator. X = neck + travel + clearance; Z = sld_z0..sld_slot_z1.
+    slot_xw = PV["sld_neck_w"] + PV["sw_travel"] + 2*PV["sld_fit"]
+    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W)-1.0, PV["sld_z0"],
+            slot_xw, W+2.0, PV["sld_slot_z1"]-PV["sld_z0"],
+            H=f"{SP('sld_slot_z1')} - {SP('sld_z0')}")
     return body
 
 # =====================================================================
@@ -502,6 +515,26 @@ def build_thumbpiece():
     s = PV["thumb_sock"]
     top = bot + PV["thumb_h"]
     sub_box(body, "Thumb_Socket", cx-s/2, cy-s/2, top-PV["thumb_sock_d"], s, s, PV["thumb_sock_d"]+0.1)
+    return body
+
+# =====================================================================
+# SWITCH SLIDER  (printed actuator for the MSK12C02; rides the -Y slot, grips the knob)
+# =====================================================================
+def build_switch_slider():
+    body = DOCO.addObject("PartDesign::Body", "SwitchSlider")
+    cx = PV["sw_cx"]; ow = -(C + W); fit = PV["sld_fit"]
+    # thumb tab OUTSIDE the -Y wall (big grip; wider/taller than the slot so it
+    # covers the slot and can't push inward)
+    add_box(body, "Sld_Tab", cx-PV["sld_tab_w"]/2, ow-PV["sld_tab_t"], PV["sld_z0"],
+            PV["sld_tab_w"], PV["sld_tab_t"], PV["sld_z1"]-PV["sld_z0"])
+    # neck THROUGH the slot, reaching the actuator face (rides with sld_fit play)
+    neck_dy = PV["sw_act_y"] - ow                     # -1.8 - (-2.7) = 0.9
+    add_box(body, "Sld_Neck", cx-PV["sld_neck_w"]/2, ow, PV["sld_z0"]+fit,
+            PV["sld_neck_w"], neck_dy, (PV["sld_slot_z1"]-PV["sld_z0"])-2*fit)
+    # grip pocket straddling the actuator knob in X -> sliding the tab slides the switch
+    kp_w = PV["sw_knob_w"] + fit
+    sub_box(body, "Sld_Grip", cx-kp_w/2, PV["sw_act_y"]-PV["sw_knob_proj"], PV["sw_act_z0"]-0.3,
+            kp_w, PV["sw_knob_proj"]+0.3, (PV["sw_act_z1"]-PV["sw_act_z0"])+0.6)
     return body
 
 # =====================================================================
@@ -542,11 +575,12 @@ def import_assembly():
 bp = build_backplate()
 fc = build_front_cover()
 tp = build_thumbpiece()
+sld = build_switch_slider()
 asm = import_assembly()
 DOCO.recompute()
 
 if GUI:
-    for b, col in [(bp,(0.30,0.55,0.85)), (fc,(0.85,0.55,0.30)), (tp,(0.15,0.15,0.18))]:
+    for b, col in [(bp,(0.30,0.55,0.85)), (fc,(0.85,0.55,0.30)), (tp,(0.15,0.15,0.18)), (sld,(0.20,0.70,0.40))]:
         try: b.ViewObject.ShapeColor = col
         except Exception: pass
 
@@ -559,11 +593,12 @@ try:
     Part.export([bp], os.path.join(exp, "WetGregCase_BackPlate.step"))
     Part.export([fc], os.path.join(exp, "WetGregCase_FrontCover.step"))
     Part.export([tp], os.path.join(exp, "WetGregCase_Thumbpiece.step"))
+    Part.export([sld], os.path.join(exp, "WetGregCase_SwitchSlider.step"))
 except Exception as e:
     App.Console.PrintWarning("STEP export skipped: %s\n" % e)
 try:                                   # print-ready 3MF meshes (regenerated each run)
     import Mesh
-    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece")]:
+    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece"), (sld, "SwitchSlider")]:
         Mesh.export([o], os.path.join(here, "WetGregCase-%s.3mf" % nm))
 except Exception as e:
     App.Console.PrintWarning("3MF export skipped: %s\n" % e)
@@ -576,6 +611,7 @@ print("WetGregCase (PartDesign + Parameters spreadsheet)")
 print("  BackPlate :", chk(bp))
 print("  FrontCover:", chk(fc))
 print("  Thumbpiece:", chk(tp))
+print("  SwitchSldr:", chk(sld))
 print("  Overall Z : %.2f .. %.2f (%.2f mm)" % (front_outer_z, base_top_z, base_top_z-front_outer_z))
 print("="*62)
 
