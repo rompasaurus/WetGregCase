@@ -47,6 +47,7 @@ PARAMS = [
     ("clear",      0.30, "PCB-to-wall clearance per side"),
     ("wall",       2.40, "Wall thickness (+0.4 for snap-bead rigidity)"),
     ("ext_xmin",   0.30, "Case extension on -X past the board edge: sized so the -X wall clears the screen overhang (-0.394) by 0.2mm wiggle (cavity inner = -0.6)"),
+    ("ext_y",      0.00, "Long-side (±Y) wall push-out PER SIDE. Set back to 0 (was 0.5): the +0.5/side widening gave the Dilder PCB too much Y wiggle, so the cavity is brought back in to the board edge."),
     ("corner_r",   7.70, "Outer corner radius (board_r+clear+wall = 5+0.3+2.4)"),
     # --- Screen side (-Z, front lid) ---
     ("screen_top", 11.83,"Front-cover depth so the window inner meets the real screen front (-9.43): 13mm screen-to-PCB-backside stack. = wall - (board_rest_z + board_t - 13)."),
@@ -71,14 +72,32 @@ PARAMS = [
     ("bat_gap_w", 13.00, "Battery connector / cable gap width"),
     ("bat_gap_d",  7.00, "Battery gap depth into the board (stays below the window)"),
     ("bat_floor",  2.40, "Solid front skin left under the battery gap (>= wall, keeps the front floor whole + printable)"),
+    # --- Battery body + printed corner clips (innCraft 503450 LiPo) ---
+    ("bat_body_x", 51.00, "Battery body size X (innCraft 503450 pouch, 51x34x5)"),
+    ("bat_body_y", 34.00, "Battery body size Y"),
+    ("bat_body_z",  5.00, "Battery body thickness Z (critical PCB-to-screen stack-up)"),
+    ("bat_ctr_x",  35.80, "Battery centre X (shifted -4mm total from the KiCad 39.8 to give the e-ink header connector room on the +X end)"),
+    ("bat_ctr_y",  23.00, "Battery centre Y in case-local frame (KiCad 65.0 -> 88.0-Y)"),
+    # two end-clips: each hooks the two M2 standoff pillars at one X-end of the battery
+    # via open notches, and walls the battery's two corners there, height = cell thickness.
+    ("clip_fit",    0.40, "Clip clearance to the battery edges and to the standoff pillars"),
+    ("clip_wall",   2.00, "Clip wall thickness (battery-edge rail + corner returns + pillar-tab flanks)"),
+    ("clip_pillar_r",2.10,"Standoff pillar radius the clip notch/hole cups (= standoff_d/2; +1mm wider holes/slot to fit the real ~4mm standoffs)"),
+    ("clip_return", 7.00, "Clip corner-return length along the battery edge (Y-stop reach)"),
+    ("clip_lip_proj",3.00,"Z-retention overhang: inward reach over the battery corners (holds the cell)"),
+    ("clip_lip_th",  1.00,"Z-retention overhang thickness (layer under the cell that traps it against the PCB)"),
+    # --- M2 brass standoffs holding the e-ink screen off the PCB (assembly reference) ---
+    ("standoff_h",  10.00, "Brass standoff length (M2 x 10mm): screen back sits this far off the PCB screen-side face"),
+    ("standoff_d",   4.20, "Standoff body diameter (measured a smidge over 4mm) the clips cup"),
     # --- Flush lap joint + discrete snap-fit (inside the lap; no added thickness) ---
-    ("lap",        3.00, "Lap tongue height (engagement; lives inside the backplate)"),
+    ("lap",        4.50, "Lap tongue height (engagement; lives inside the backplate). Sized so tongue top (lap-lap_fit=4.3) still covers the raised bead top (4.2)."),
     ("tongue_t",   1.00, "Tongue thickness (thin -> flexes to snap)"),
     ("lap_fit",    0.20, "Tongue-to-relief slip gap"),
-    ("bead_proj",  0.80, "Snap bead projection past the tongue (interference = proj-lap_fit; +0.4 for clasp grip)"),
-    ("bead_h",     2.20, "Snap bead height (Z) (+1mm, centred in the lap; stays under the tongue top so the USB-C still clears)"),
-    ("bead_lead",  0.80, "Snap bead lead-in (top chamfer for assembly)"),
+    ("bead_proj",  0.60, "Snap bead projection past the tongue (interference = proj-lap_fit = 0.4): eased from 0.8 -> 0.6 because 0.6mm interference took too much force and cracked the backplate."),
+    ("bead_h",     1.10, "Snap bead height (Z): shaved 0.5 (was 1.6) so it eases in/out without snapping off. Base at lock_lip (1.0), top at 2.1, under the tongue top (4.3)."),
+    ("bead_lead",  0.80, "Snap bead lead-in (top chamfer = leading edge on assembly)"),
     ("snap_w",     6.00, "Snap bead width along the wall"),
+    ("lock_lip",   1.00, "Solid uninterrupted lip (Z) at the seam entry of the backplate relief wall, BELOW the bead. No cutout runs through it, so the bead must flex PAST it to seat -> it locks behind the lip (cantilever snap). The bead base is raised to seam+lock_lip."),
     # --- Screen window (sized inside the 4 M2 screw holes) ---
     ("win_x0",    11.60, "Window X min (extended 1mm toward the Y axis)"),
     ("win_x1",    63.60, "Window X max (long edge shaved 2mm; long edges 4mm shorter)"),
@@ -112,11 +131,11 @@ PARAMS = [
     ("joy_hole_d",12.00, "Joystick hole diameter"),
     ("joy_boss_d",20.00, "Joystick boss outer diameter"),
     ("joy_pad_th", 5.00, "Joystick boss thickness (solar-connector room)"),
-    ("thumb_od",  11.00, "Thumb cap outer diameter"),
-    ("thumb_h",    4.50, "Thumb cap height"),
+    ("thumb_od",   9.50, "Thumb cap outer diameter (was 11.00; -1.5mm for fit tolerance)"),
+    ("thumb_h",    7.50, "Thumb cap height (raised 3mm from 4.5; square socket depth unchanged - it's referenced from the top)"),
     ("thumb_dish_r",12.00,"Thumb dish sphere radius"),
     ("thumb_dish_d",0.60,"Thumb dish depth"),
-    ("thumb_sock", 3.30, "Thumb socket (square)"),
+    ("thumb_sock", 3.70, "Thumb socket (square) - was 3.30; +0.2mm clearance per side"),
     ("thumb_sock_d",3.50,"Thumb socket depth"),
     # --- snap-bead positions (fraction along each wall) ---
     ("snap_n_long", 2, "Snap beads per long wall"),
@@ -129,6 +148,7 @@ def SP(alias):
 # Derived (literal positions; sizes/heights also live-bound below) ----
 BW, BH, BT, BR = PV["board_w"], PV["board_h"], PV["board_t"], PV["board_r"]
 C, W, EXT = PV["clear"], PV["wall"], PV["ext_xmin"]
+EY = PV["ext_y"]                                  # ±Y wall push-out per side (long sides widened)
 front_outer_z = -PV["screen_top"]                 # -11.4
 front_floor_inner = front_outer_z + PV["wall"]    # -9.4 (front floor inner face)
 seam_z        =  PV["ftop"]                        # 5.5  (front-plate top / clip seam, above the Pico)
@@ -136,22 +156,22 @@ base_top_z    =  seam_z + PV["back_above"]         # 7.5  (backplate cap top)
 pcb_rest_z    =  PV["board_rest_z"]                # board bottom rests this high above the seam (above the bead)
 board_top_z   =  pcb_rest_z + PV["board_t"]        # board backside (+Z); the back shelf clamps here
 EINK_HOLES = [(2.4, 9.0), (2.4, 33.4), (68.8, 9.0), (68.8, 33.4)]   # M2 mount holes (local)
-# outer footprint
-OX0, OY0 = -(EXT + C + W), -(C + W)
-OX1, OY1 =  BW + C + W,     BH + C + W
-# inner cavity (board + clear, extended -X)
-IX0, IY0 = -(EXT + C), -C
-IX1, IY1 =  BW + C,     BH + C
-# tongue / relief offsets from board
-def off(o):                       # (x0,y0,x1,y1) at outward offset o (extended -X)
-    return (-(EXT + o), -o, BW + o, BH + o)
+# outer footprint  (±Y pushed out by EY: long sides widened, walls + cavity follow)
+OX0, OY0 = -(EXT + C + W), -(C + W + EY)
+OX1, OY1 =  BW + C + W,     BH + C + W + EY
+# inner cavity (board + clear, extended -X; ±Y also gains EY so the wall stays `wall` thick)
+IX0, IY0 = -(EXT + C), -(C + EY)
+IX1, IY1 =  BW + C,     BH + C + EY
+# tongue / relief offsets from board (Y carries the EY push-out so the lap joint tracks the wall)
+def off(o):                       # (x0,y0,x1,y1) at outward offset o (extended -X, widened ±Y)
+    return (-(EXT + o), -(o + EY), BW + o, BH + o + EY)
 
 def rad_of(o):                    # corner radius of a feature at offset o
     return max(BR + o, 0.4)
 O_IN  = C
 O_TNG = C + PV["tongue_t"]
 O_REL = C + PV["tongue_t"] + PV["lap_fit"]
-bead_z = seam_z + (PV["lap"] - PV["bead_h"]) / 2.0    # bead centred in the lap; its TOP = the PCB top (the board is raised to meet it)
+bead_z = seam_z + PV["lock_lip"]    # bead base sits lock_lip above the seam, leaving a solid uninterrupted lip below it that the bead snaps PAST -> the snap locks in place
 
 # =====================================================================
 # HELPERS
@@ -319,46 +339,46 @@ def snap_spots():
     return s
 
 def add_snap_beads(body):
-    """Discrete snap beads on the front tongue: protrude past the relief wall so
-       the thin tongue flexes and clicks into the backplate recesses (inside the
-       lap -> no added case thickness). A top lead-in chamfer eases assembly."""
-    proj, sw, bh, lead = PV["bead_proj"], PV["snap_w"], PV["bead_h"], PV["bead_lead"]
-    for j, (cx, cy, wall) in enumerate(snap_spots()):
-        if wall == '-y':   b = add_box(body, f"Bead_FC_{j}", cx-sw/2, -(O_TNG+proj), bead_z, sw, proj, bh)
-        elif wall == '+y': b = add_box(body, f"Bead_FC_{j}", cx-sw/2, BH+O_TNG,     bead_z, sw, proj, bh)
-        elif wall == '-x': b = add_box(body, f"Bead_FC_{j}", -(EXT+O_TNG+proj), cy-sw/2, bead_z, proj, sw, bh)
-        else:              b = add_box(body, f"Bead_FC_{j}", BW+O_TNG,     cy-sw/2, bead_z, proj, sw, bh)
-        # lead-in: chamfer the bead's TOP outer edge (leading edge on assembly)
-        ztop = bead_z + bh
-        if wall in ('-y', '+y'):
-            yo = -(O_TNG+proj) if wall == '-y' else BH+O_TNG+proj
-            ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
-                  if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.y-yo) < 1e-3 for v in e.Vertexes)]
-        else:
-            xo = -(EXT+O_TNG+proj) if wall == '-x' else BW+O_TNG+proj
-            ce = [f"Edge{i+1}" for i, e in enumerate(b.Shape.Edges)
-                  if all(abs(v.Point.z-ztop) < 1e-3 and abs(v.Point.x-xo) < 1e-3 for v in e.Vertexes)]
-        if ce:
-            try:
-                ch = body.newObject("PartDesign::Chamfer", f"BeadLead_{j}")
-                ch.Base = (b, ce); ch.Size = min(lead, bh-0.2, proj-0.05)
-                DOCO.recompute()
-                if not ch.Shape.isValid():
-                    body.removeObject(ch); DOCO.recompute()
-            except Exception:
-                pass
+    """CONTINUOUS snap bead: one uniform rib running ALL THE WAY AROUND the tongue's
+       outer face (offset O_TNG), protruding past it by bead_proj. A lead-in chamfer
+       runs along its top OUTER edge (the leading edge as the tongue inserts up) so it
+       cams into the relief. Unbroken bead -> uniform engagement all around; replaces
+       the old discrete beads + spot chamfers."""
+    proj, bh, lead = PV["bead_proj"], PV["bead_h"], PV["bead_lead"]
+    bead = frame_pad(body, "Bead_FC", bead_z, bh, O_TNG + proj, O_TNG, SP("bead_h"))
+    # lead-in chamfer along the top OUTER edge loop (4 lines + 4 arcs), all around
+    ztop = bead_z + bh
+    def is_outer(v):                       # on the bead's OUTER perimeter (vs the inner loop)?
+        x, y = v.Point.x, v.Point.y
+        return (x <= -(EXT + O_TNG) - 0.1 or x >= BW + O_TNG + 0.1
+                or y <= -(O_TNG + EY) - 0.1 or y >= BH + O_TNG + EY + 0.1)
+    ce = [f"Edge{i+1}" for i, e in enumerate(bead.Shape.Edges)
+          if len(e.Vertexes) and all(abs(v.Point.z - ztop) < 1e-3 for v in e.Vertexes)
+          and all(is_outer(v) for v in e.Vertexes)]
+    if ce:
+        try:
+            ch = body.newObject("PartDesign::Chamfer", "BeadLead")
+            ch.Base = (bead, ce); ch.Size = min(lead, bh - 0.2, proj - 0.05)
+            DOCO.recompute()
+            if not ch.Shape.isValid():
+                body.removeObject(ch); DOCO.recompute()
+        except Exception:
+            pass
 
 def add_snap_recesses(body):
-    """Matching BLIND recesses in the backplate relief wall that capture the
-       beads. Depth = only the bead's protrusion past the relief wall (+0.1 mm),
-       so a solid outer skin remains -> doesn't cut through the curved back wall."""
-    sw, bh, pad = PV["snap_w"], PV["bead_h"], 0.4
+    """CONTINUOUS recess groove cut ALL AROUND the relief outer wall, capturing the
+       continuous bead. Radial depth = the bead's protrusion past the relief (+0.1mm),
+       so a solid outer skin remains (no cut through the curved back). The groove
+       BOTTOM is flush with the bead base (bead_z), leaving the lock_lip below it
+       solid -> the bead flexes past the lip and locks behind it (cantilever snap).
+       One uniform groove; replaces the old discrete recesses."""
+    bh, pad = PV["bead_h"], 0.4
     rec_d = (PV["bead_proj"] - PV["lap_fit"]) + 0.1     # just enough for the bead to seat
-    for j, (cx, cy, wall) in enumerate(snap_spots()):
-        if wall == '-y':   sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, -(O_REL+rec_d), bead_z-pad, sw+2*pad, rec_d, bh+2*pad)
-        elif wall == '+y': sub_box(body, f"Recess_BP_{j}", cx-sw/2-pad, BH+O_REL,        bead_z-pad, sw+2*pad, rec_d, bh+2*pad)
-        elif wall == '-x': sub_box(body, f"Recess_BP_{j}", -(EXT+O_REL+rec_d), cy-sw/2-pad, bead_z-pad, rec_d, sw+2*pad, bh+2*pad)
-        else:              sub_box(body, f"Recess_BP_{j}", BW+O_REL,        cy-sw/2-pad, bead_z-pad, rec_d, sw+2*pad, bh+2*pad)
+    # Extend the groove 0.5mm DOWN toward the seam (keeping the catching overhang at the
+    # top): the bead reaches its recess ~0.5mm before full seating, riding that much less
+    # lock-lip, so the backplate pairs/snaps instead of jamming. Lip drops 1.0 -> 0.5mm.
+    seat = 0.5
+    frame_pocket(body, "Recess_BP", bead_z - seat, bh + pad + seat, O_REL + rec_d, O_REL, reversed_=True)
 
 # =====================================================================
 # DOCUMENT + SPREADSHEET
@@ -382,8 +402,12 @@ DOCO.recompute()
 # =====================================================================
 def build_front_cover():
     body = DOCO.addObject("PartDesign::Body", "FrontCover")
-    # 1. outer block front_outer_z -> seam (top, above the Pico)
-    sk = rect_sketch(body, "Sk_FC", front_outer_z, OX0, OY0, OX1, OY1)
+    # 1. outer block front_outer_z -> seam (top, above the Pico). ALL FOUR outer walls
+    #    are pushed out 0.2mm each: the snap beads splay the joint a touch on assembly
+    #    (the short +/-X edges were bowing out on the backplate too), so the front lid is
+    #    pre-grown to finish flush with the backplate.
+    push = 0.20
+    sk = rect_sketch(body, "Sk_FC", front_outer_z, OX0-push, OY0-push, OX1+push, OY1+push)
     pad = body.newObject("PartDesign::Pad", "Pad_FC")
     pad.Profile = sk
     pad.Length = seam_z - front_outer_z
@@ -402,8 +426,20 @@ def build_front_cover():
     #    position rib outer falls inside the inward-curving wall, so it merges
     #    (no gap, no overhang, no poke-through). Top = Z0 (PCB rests here).
     ld = PV["ledge_depth"]
-    ledge = frame_pad(body, "Pad_FC_Ledge", pcb_rest_z - ld, ld, O_IN, O_IN - PV["ledge_in"], SP("ledge_depth"))
+    # rib outer reaches O_IN + push so it still merges with the pushed-out walls (the
+    # board-rest inner edge is unchanged); without this the rib detaches -> 2 solids.
+    ledge = frame_pad(body, "Pad_FC_Ledge", pcb_rest_z - ld, ld, O_IN + push, O_IN - PV["ledge_in"], SP("ledge_depth"))
     lth = ld   # downstream cuts (battery gap, drill notches) clear the full rib
+    # 5a. Two notches in the +Y ledge rib (one per battery clip) so the clips' upper
+    #     corner returns fit -- the battery is +Y-shifted, so those returns currently
+    #     clip into this rib. Like the battery-connector gap: pocket the rib at each clip.
+    yhi = PV["bat_ctr_y"] + PV["bat_body_y"]/2                # battery +Y edge
+    for s in (-1, +1):
+        rfc = PV["bat_ctr_x"] + s*PV["bat_body_x"]/2 + s*PV["clip_fit"]
+        ce0 = min(rfc + s*PV["clip_wall"], rfc - s*PV["clip_return"]) - 0.6
+        ce1 = max(rfc + s*PV["clip_wall"], rfc - s*PV["clip_return"]) + 0.6
+        sub_box(body, "Cut_FC_ClipClr_%s" % ('L' if s < 0 else 'R'),
+                ce0, yhi-0.6, pcb_rest_z-6.5, ce1-ce0, IY1-(yhi-0.6), 7.0)
     # carve the SCREEN space so the rib clears the REAL screen depth on the -X edge:
     # from the front floor up to just past the screen back (screen_back); the rib
     # remains above that (screen_back -> 0) to support the PCB.
@@ -417,6 +453,15 @@ def build_front_cover():
     sub_box(body, "Cut_FC_Window", PV["win_x0"], PV["win_y0"], front_outer_z-1.0,
             PV["win_x1"]-PV["win_x0"], PV["win_y1"]-PV["win_y0"], W+2.0,
             L=f"{SP('win_x1')} - {SP('win_x0')}", Wd=f"{SP('win_y1')} - {SP('win_y0')}")
+    # 6b. screen-clearance carve: shave 0.4mm off the BACK of the front face in the two
+    #     frame strips at the screen's SHORTER (+/-X) edges, coming inward to the window,
+    #     so the e-ink board edges sit clear of the inner face.
+    scc = 0.40
+    sub_box(body, "Cut_FC_ScrFace_Xlo", sx0, sy0, front_floor_inner-scc,
+            PV["win_x0"]-sx0, sy1-sy0, scc)
+    scc_xhi = scc + 0.30   # +0.3mm deeper carve on the +X frame strip (screen edge fit)
+    sub_box(body, "Cut_FC_ScrFace_Xhi", PV["win_x1"], sy0, front_floor_inner-scc_xhi,
+            sx1-PV["win_x1"], sy1-sy0, scc_xhi)
     # 7. round joystick boss (5 mm, annular fill around the hole)
     add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
             PV["joy_boss_d"]/2, PV["joy_pad_th"])
@@ -426,9 +471,12 @@ def build_front_cover():
     #     leaves `bat_floor` of solid front skin (a printable first layer). Starts
     #     at the wall inner so the outer wall stays solid.
     bat_z0 = front_outer_z + PV["bat_floor"]
+    # Top reaches the PCB rest (rib top) so it cuts CLEAN THROUGH the ledge rib --
+    # the rib pads up to pcb_rest_z (2.10), so stopping at 1.0 left a ~1.1mm shelf
+    # over the connector/cable. Cutting to pcb_rest_z clears the full rib thickness.
     sub_box(body, "Cut_FC_BatteryGap",
             PV["bat_cx"]-PV["bat_gap_w"]/2, IY0, bat_z0,
-            PV["bat_gap_w"], PV["bat_gap_d"], (1.0)-bat_z0,
+            PV["bat_gap_w"], PV["bat_gap_d"], pcb_rest_z-bat_z0,
             L=SP("bat_gap_w"))
     # 10b. notch the rib around the 2 mount holes closest to the Y axis (x=2.4).
     #      z tracks the RAISED rib (pcb_rest_z - ld .. pcb_rest_z); cutting from the
@@ -441,8 +489,10 @@ def build_front_cover():
     frame_pad(body, "Pad_FC_Tongue", seam_z, PV["lap"] - fit, O_TNG, O_IN + fit,
               f"{SP('lap')} - {SP('lap_fit')}")
     add_snap_beads(body)
-    # (front tongue is now continuous at the USB-C and switch — no relief cuts — so
-    #  the bead runs unbroken there for a firmer clasp)
+    # Drop the snap bead on the straight +X (USB-C) short edge: it sat under the USB lip
+    # and kept snapping off. Keep the corner beads; remove only the straight middle.
+    sub_box(body, "Cut_FC_BeadGapUSB", BW+O_TNG, 8.0, bead_z-0.5,
+            PV["bead_proj"]+1.0, (BH-8.0)-8.0, PV["bead_h"]+1.0)
     # 11e. Outer lip at the USB-C notch: fills the LOWER part of the backplate's USB
     #      cutout, flush with the outer +X surface (x = tongue outer .. OX1), rising
     #      from the seam by usb_lip_h to cover the exposed bead/seam. Sits inside the
@@ -495,8 +545,8 @@ def build_backplate():
     # power-switch slider slot (-Y): a window the slider neck rides in, exposing the
     # MSK12C02 actuator. X = neck + travel + clearance; Z = sld_z0..sld_slot_z1.
     slot_xw = PV["sld_neck_w"] + PV["sw_travel"] + 2*PV["sld_fit"]
-    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W)-1.0, PV["sld_z0"]+pcb_rest_z,
-            slot_xw, W+2.0, PV["sld_slot_z1"]-PV["sld_z0"],
+    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W+EY)-1.0, PV["sld_z0"]+pcb_rest_z,
+            slot_xw, W+2.0+EY, PV["sld_slot_z1"]-PV["sld_z0"],
             H=f"{SP('sld_slot_z1')} - {SP('sld_z0')}")
     # 9. perimeter SUPPORT SHELF: steps in over the board's outer edge from the board
     #    top up to the inner ceiling, so the board is clamped between the front rib
@@ -512,17 +562,27 @@ def build_backplate():
     ux1 = BW + C + 0.1                                  # just inside the +X wall inner
     sub_box(body, "Cut_BP_ShelfUSB", ux1-(PV["back_shelf_reach"]+0.6), PV["usb_cy"]-PV["usb_w"]/2-0.6,
             board_top_z-0.5, PV["back_shelf_reach"]+0.6, PV["usb_w"]+1.2, sh_h+1.0)
-    # -Y switch + battery: from just inside the -Y wall inner, in to y=+2.5 (clears the
-    # switch body to ~2.4) - does NOT reach the wall outer, so no hole in the side.
-    yg0 = PV["bat_cx"]-PV["bat_gap_w"]/2-1.0
-    sub_box(body, "Cut_BP_ShelfYedge", yg0, -(C+0.1), board_top_z-0.5,
-            (PV["sw_cx"]+5.0)-yg0, (C+0.1)+2.5, sh_h+1.0)
-    # gap the +Y (top) shelf at the middle for the accelerometer (board lays flat)
-    sub_box(body, "Cut_BP_ShelfAccel", 30.0, 38.0, board_top_z-0.5,
-            16.0, (BH+C+0.1)-38.0, sh_h+1.0)
-    # gap the shelf at the +X/-Y corner (by the USB-C) for the LEDs
-    sub_box(body, "Cut_BP_ShelfLED", 85.0, -(C+0.1), board_top_z-0.5,
-            8.0, (C+0.1)+4.0, sh_h+1.0)
+    # Long-side edge gaps, made SYMMETRIC top/bottom: the -Y gap (powerswitch / TP4056 /
+    # battery) and the +Y gap (MCU) share one X span and one depth in from each long wall,
+    # so they're the same length and start/end at the same X on both sides.
+    gx0, gx1 = 30.0, 56.0                              # common X span (covers switch+batt and MCU)
+    gdep = 4.0                                         # reach in from the board edge (each side)
+    sub_box(body, "Cut_BP_ShelfYedge", gx0, -(C+EY+0.1), board_top_z-0.5,
+            gx1-gx0, (C+EY+0.1)+gdep, sh_h+1.0)        # -Y: wall inner -> y=+gdep
+    sub_box(body, "Cut_BP_ShelfMCU",   gx0, BH-gdep,   board_top_z-0.5,
+            gx1-gx0, (BH+C+EY+0.1)-(BH-gdep), sh_h+1.0)  # +Y: y=BH-gdep -> wall inner
+    # +X corner LED gaps: keep the -Y corner one and MIRROR it onto the +Y corner.
+    lc_x, lc_w, lc_dep = 85.0, 8.0, 4.0
+    sub_box(body, "Cut_BP_ShelfLED",    lc_x, -(C+EY+0.1), board_top_z-0.5,
+            lc_w, (C+EY+0.1)+lc_dep, sh_h+1.0)         # +X/-Y corner
+    sub_box(body, "Cut_BP_ShelfLEDtop", lc_x, BH-lc_dep, board_top_z-0.5,
+            lc_w, (BH+C+EY+0.1)-(BH-lc_dep), sh_h+1.0) # +X/+Y corner (mirror)
+    # thin the central back panel 0.2mm (translucent filament -> see the components more
+    # clearly). Inset from the walls past the support shelf so the perimeter/shelf stay
+    # full thickness; shaves only the flat inner base over the board.
+    inset = PV["back_shelf_reach"] + 0.5
+    sub_box(body, "Cut_BP_BaseThin", IX0+inset, IY0+inset, base_top_z-W,
+            (IX1-inset)-(IX0+inset), (IY1-inset)-(IY0+inset), 0.2)
     return body
 
 # =====================================================================
@@ -551,7 +611,7 @@ def build_thumbpiece():
 # =====================================================================
 def build_switch_slider():
     body = DOCO.addObject("PartDesign::Body", "SwitchSlider")
-    cx = PV["sw_cx"]; ow = -(C + W); fit = PV["sld_fit"]; rz = pcb_rest_z
+    cx = PV["sw_cx"]; ow = -(C + W + EY); fit = PV["sld_fit"]; rz = pcb_rest_z   # ow tracks the widened -Y wall
     z0 = PV["sld_z0"] + rz                                  # tracks the raised switch
     # thin thumb tab OUTSIDE the -Y wall, kept flush-ish to the side (small protrusion)
     tab = add_box(body, "Sld_Tab", cx-PV["sld_tab_w"]/2, ow-PV["sld_tab_t"], z0,
@@ -575,6 +635,97 @@ def build_switch_slider():
     kp_w = PV["sw_knob_w"] + fit
     sub_box(body, "Sld_Grip", cx-kp_w/2, PV["sw_act_y"]-PV["sw_knob_proj"], PV["sw_act_z0"]+rz-0.3,
             kp_w, PV["sw_knob_proj"]+0.3, (PV["sw_act_z1"]-PV["sw_act_z0"])+0.6)
+    return body
+
+# =====================================================================
+# BATTERY END-CLIPS  (two printed corner pieces that hook the standoff pillars and
+#                     wall the battery's corners, wedged in the PCB->screen gap)
+# =====================================================================
+def build_battery_clip(sx, name):
+    """ONE end-clip for the -X (sx=-1) or +X (sx=+1) end of the battery. It hooks the
+       two M2 standoff pillars at that end (notch/hole that the pillar pokes into) and
+       walls the battery's two corners there. Height spans the full PCB-screen-side-face
+       -> screen-back gap, so it wedges between them AND covers the 5mm cell. The cell is
+       sandwiched in X between the two clips' rails and held in Y by the corner returns;
+       the pillars locate each clip. Avoids the -Y connector entirely (clips are at the
+       X-ends). Standalone print (not booleaned into the case)."""
+    body = DOCO.addObject("PartDesign::Body", name)
+    bx, by = PV["bat_body_x"], PV["bat_body_y"]
+    cx, cy = PV["bat_ctr_x"], PV["bat_ctr_y"]
+    fit, cw = PV["clip_fit"], PV["clip_wall"]
+    pr, rl  = PV["clip_pillar_r"], PV["clip_return"]
+    # Z: the rail/returns cover the battery (+ a little), leaving a gap below their middle
+    # so they don't crush screen-back components. The standoff BOSSES instead run the FULL
+    # standoff height (10mm) -- PCB screen-side face down to the screen back -- so they meet
+    # the e-ink PCB and clamp the screen + the clip in place.
+    z1 = pcb_rest_z                                          # PCB screen-side face (top)
+    z0 = z1 - PV["bat_body_z"]                               # rail/returns cover the cell
+    h  = z1 - z0
+    boss_z0 = pcb_rest_z - PV["standoff_h"] + 0.2            # 0.2 short of the screen back: clearance at the tallest point
+    boss_h  = pcb_rest_z - boss_z0                           # ~9.8mm (just under the 10mm standoff)
+    bx_edge = cx + sx*bx/2                                   # battery end edge X
+    by_lo, by_hi = cy - by/2, cy + by/2                      # battery corners (Y)
+    rail_face = bx_edge + sx*fit                             # clears the battery edge
+    rail_out  = rail_face + sx*cw
+    rx0, rx1  = min(rail_face, rail_out), max(rail_face, rail_out)
+    # 1. battery-edge rail (X-stop). Y span runs the corner-outboard band (past both
+    #    corners by a wall) so the returns and pillar tabs share a real face with it
+    #    and the whole clip fuses into ONE solid.
+    ry0, ry1 = by_lo - fit - cw, by_hi + fit + cw
+    add_box(body, "Clip_Rail", rx0, ry0, z0, rx1-rx0, ry1-ry0, h)
+    # 2. corner returns (Y-stops) reaching inward along the battery edge at each corner;
+    #    start at the rail's outboard face so they overlap the rail body.
+    ret_x0 = min(rail_out, rail_face - sx*rl)
+    ret_x1 = max(rail_out, rail_face - sx*rl)
+    add_box(body, "Clip_RetLo", ret_x0, by_lo-fit-cw, z0, ret_x1-ret_x0, cw, h)
+    add_box(body, "Clip_RetHi", ret_x0, by_hi+fit,    z0, ret_x1-ret_x0, cw, h)
+    # 2b. Z-retention overhang: a clip_lip_th-thick flange under each corner return
+    #     (screen side), reaching clip_lip_proj inward OVER the battery's corner so the
+    #     cell rests on it. The PCB face caps the top -> cell trapped in Z. Spans back
+    #     into the return so it shares a face and stays one solid.
+    lpj, lth = PV["clip_lip_proj"], PV["clip_lip_th"]
+    add_box(body, "Clip_LipLo", ret_x0, by_lo-fit-cw, z0-lth,
+            ret_x1-ret_x0, cw + lpj, lth)                      # lower corner: reach +Y over the cell
+    add_box(body, "Clip_LipHi", ret_x0, by_hi+fit-lpj, z0-lth,
+            ret_x1-ret_x0, cw + lpj, lth)                      # upper corner: reach -Y over the cell
+    # 3. pillar tabs at the two standoffs on this end, each notched/holed to cup a pillar.
+    #    Reach outward toward the pillar but never cross the case wall: where the wall is
+    #    close (-X end) the clamp turns the hole into an OPEN notch; where there's room
+    #    (+X end) it stays a closed hole that fully locates the clip.
+    so_x = min(p[0] for p in EINK_HOLES) if sx < 0 else max(p[0] for p in EINK_HOLES)
+    wall_in = IX0 if sx < 0 else IX1
+    half = pr + fit + cw                                     # tab half-width past the pillar
+    for sy in sorted({p[1] for p in EINK_HOLES}):
+        tab_out = so_x + sx*half
+        tab_out = max(tab_out, wall_in + 0.3) if sx < 0 else min(tab_out, wall_in - 0.3)
+        tx0, tx1 = min(rail_face, tab_out), max(rail_face, tab_out)
+        add_box(body, f"Clip_Tab{int(round(sy))}", tx0, sy-half, boss_z0, tx1-tx0, 2*half, boss_h)
+        sub_cyl(body, f"Clip_Notch{int(round(sy))}", so_x, sy, boss_z0-0.5, pr+fit, boss_h+1.0)
+        # Open the post hole into a SLOT so no thin boss wall is left. The +X clip opens
+        # toward the header/origin (inboard); the -X clip opens toward the case wall
+        # (outboard, where a closed boss would be ~0.2mm and unprintable). The rail-side
+        # half of the cup stays, tied to the rail, so it still locates the clip.
+        if sx > 0:
+            ox0, oxw = rail_face-0.5, so_x-(rail_face-0.5)          # open inboard (toward header)
+        else:
+            ox0, oxw = so_x-half-0.5, half+0.5                      # open outboard (toward -X wall)
+        sub_box(body, f"Clip_Open{int(round(sy))}", ox0, sy-(pr+fit), boss_z0-0.5,
+                oxw, 2*(pr+fit), boss_h+1.0)
+    # +X end: notch the header-side of the rail so it clears the e-ink header (x67-70,
+    # y17-25). Only the outboard sliver of the rail is removed (keeps an inner spine so
+    # the clip stays one piece); does nothing on the -X clip.
+    if sx > 0:
+        hx0, hx1 = 67.0, 72.0
+        hy0, hy1 = 16.0, 26.0
+        if hx1 > rail_face:
+            sub_box(body, "Clip_HdrNotch", max(hx0, rail_face+0.8), hy0, boss_z0-0.5,
+                    hx1-max(hx0, rail_face+0.8), hy1-hy0, boss_h+1.0)
+    # -X clip: shave 2.5mm off the short-edge (-X) side so it clears the front-case short
+    # wall (the post slot is open that way, so the +X cup that grips the post is untouched).
+    if sx < 0:
+        sh, xe = 2.5, wall_in + 0.3                          # xe = the clip's -X edge
+        sub_box(body, "Clip_Shave", xe-1.0, ry0-1.0, boss_z0-0.5,
+                (xe+sh)-(xe-1.0), (ry1-ry0)+2.0, boss_h+1.0)
     return body
 
 # =====================================================================
@@ -618,11 +769,28 @@ bp = build_backplate()
 fc = build_front_cover()
 tp = build_thumbpiece()
 sld = build_switch_slider()
+clipL = build_battery_clip(-1, "BatteryClipL")
+clipR = build_battery_clip(+1, "BatteryClipR")
 asm = import_assembly()
 DOCO.recompute()
 
+# Clips are built in place (no spin): left build sits on the left posts with closed
+# bosses + rail on the left battery edge; right build sits on the right posts with the
+# origin-side of its bosses opened + rail on the right battery edge (by the header).
+
+# 10mm M2 brass standoffs at the 4 e-ink mount holes: from the PCB screen-side face
+# (pcb_rest_z) toward the screen (-Z) by standoff_h. Assembly reference (not printed).
+_so = [Part.makeCylinder(PV["standoff_d"]/2, PV["standoff_h"],
+                         V(hx, hy, pcb_rest_z), V(0, 0, -1)) for (hx, hy) in EINK_HOLES]
+standoffs = DOCO.addObject("Part::Feature", "Standoffs")
+standoffs.Shape = Part.makeCompound(_so)
+if GUI and standoffs.ViewObject:
+    standoffs.ViewObject.ShapeColor = (0.80, 0.62, 0.28)   # brass
+DOCO.recompute()
+
 if GUI:
-    for b, col in [(bp,(0.30,0.55,0.85)), (fc,(0.85,0.55,0.30)), (tp,(0.15,0.15,0.18)), (sld,(0.20,0.70,0.40))]:
+    for b, col in [(bp,(0.30,0.55,0.85)), (fc,(0.85,0.55,0.30)), (tp,(0.15,0.15,0.18)),
+                   (sld,(0.20,0.70,0.40)), (clipL,(0.85,0.20,0.30)), (clipR,(0.85,0.20,0.30))]:
         try: b.ViewObject.ShapeColor = col
         except Exception: pass
 
@@ -636,11 +804,14 @@ try:
     Part.export([fc], os.path.join(exp, "WetGregCase_FrontCover.step"))
     Part.export([tp], os.path.join(exp, "WetGregCase_Thumbpiece.step"))
     Part.export([sld], os.path.join(exp, "WetGregCase_SwitchSlider.step"))
+    Part.export([clipL], os.path.join(exp, "WetGregCase_BatteryClipL.step"))
+    Part.export([clipR], os.path.join(exp, "WetGregCase_BatteryClipR.step"))
 except Exception as e:
     App.Console.PrintWarning("STEP export skipped: %s\n" % e)
 try:                                   # print-ready 3MF meshes (regenerated each run)
     import Mesh
-    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece"), (sld, "SwitchSlider")]:
+    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece"), (sld, "SwitchSlider"),
+                  (clipL, "BatteryClipL"), (clipR, "BatteryClipR")]:
         Mesh.export([o], os.path.join(here, "WetGregCase-%s.3mf" % nm))
 except Exception as e:
     App.Console.PrintWarning("3MF export skipped: %s\n" % e)
@@ -654,7 +825,10 @@ print("  BackPlate :", chk(bp))
 print("  FrontCover:", chk(fc))
 print("  Thumbpiece:", chk(tp))
 print("  SwitchSldr:", chk(sld))
+print("  BatClip L :", chk(clipL))
+print("  BatClip R :", chk(clipR))
 print("  Overall Z : %.2f .. %.2f (%.2f mm)" % (front_outer_z, base_top_z, base_top_z-front_outer_z))
+print("  Case Y    : %.2f .. %.2f (%.2f mm, +%.1f total)" % (OY0, OY1, OY1-OY0, 2*EY))
 print("="*62)
 
 if GUI:
