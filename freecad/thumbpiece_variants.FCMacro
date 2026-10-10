@@ -1,0 +1,74 @@
+"""Thumbpiece fit-test set: 20 thumb caps in one 3MF, ready to print on one plate.
+
+The v56 cap (3.70 mm square socket, 3.5 mm deep) was too tight on the joystick stem.
+This sweeps socket size (columns) x socket depth (rows) so the best fit can be picked
+and copied back into wetgreg_case.FCMacro (thumb_sock / thumb_sock_d).
+
+  socket size : 3.80 3.90 4.00 4.10 4.20   -> ID dots on the +X side (1..5)
+  socket depth: 3.0  3.5  4.0  4.5         -> ID dots on the -X side (1..4)
+
+Deeper socket = cap seats further down the stem = sits closer to the case face.
+The ID dots are engraved on the inner (socket) face so they are hidden once fitted.
+OD is trimmed to 9.0 (from 9.5) for extra radial room in the 12.1 mm hole in case
+the joystick is soldered slightly off-centre. A 0.3 mm lead-in chamfer at the socket
+mouth helps it start onto the stem.
+
+Run:  freecadcmd freecad/thumbpiece_variants.FCMacro
+Out:  freecad/WetGregCase-ThumbpieceFitSet.3mf  (dish face down, socket up)
+"""
+import os, math
+import FreeCAD as App, Part, Mesh
+
+V = App.Vector
+SOCK  = [3.80, 3.90, 4.00, 4.10, 4.20]
+DEPTH = [3.0, 3.5, 4.0, 4.5]
+OD, H = 9.0, 7.5                    # cap outer diameter / height (v56 H = 7.5)
+DISH_R, DISH_D = 12.0, 0.6          # thumb dish on the outer face (z = 0)
+CHAMF = 0.3                         # socket-mouth lead-in
+DOT_R, DOT_D, DOT_RING = 0.4, 0.4, 3.65
+PITCH = 13.0                        # grid spacing on the plate
+
+def dots(n, side):
+    """n engraved dots on an arc around +X (side=+1) or -X (side=-1) of the top face."""
+    out, step = [], 19.0
+    for i in range(n):
+        a = math.radians((i - (n - 1) / 2) * step) + (0 if side > 0 else math.pi)
+        c = Part.makeCylinder(DOT_R, DOT_D + 0.1,
+                              V(DOT_RING * math.cos(a), DOT_RING * math.sin(a), H - DOT_D))
+        out.append(c)
+    return out
+
+def cap(s, d, si, di):
+    body = Part.makeCylinder(OD / 2, H)
+    body = body.cut(Part.makeSphere(DISH_R, V(0, 0, -DISH_R + DISH_D)))
+    sock = Part.makeBox(s, s, d + 0.1, V(-s / 2, -s / 2, H - d))
+    # lead-in: frustum from (s + 2*CHAMF) at the mouth down to s, square section
+    m = s + 2 * CHAMF
+    lo = Part.makePolygon([V(-s/2, -s/2, H - CHAMF), V(s/2, -s/2, H - CHAMF),
+                           V(s/2, s/2, H - CHAMF), V(-s/2, s/2, H - CHAMF), V(-s/2, -s/2, H - CHAMF)])
+    hi = Part.makePolygon([V(-m/2, -m/2, H + 0.01), V(m/2, -m/2, H + 0.01),
+                           V(m/2, m/2, H + 0.01), V(-m/2, m/2, H + 0.01), V(-m/2, -m/2, H + 0.01)])
+    lead = Part.makeLoft([lo, hi], True)
+    cut = sock.fuse(lead)
+    for c in dots(si + 1, +1) + dots(di + 1, -1):
+        cut = cut.fuse(c)
+    return body.cut(cut).removeSplitter()
+
+doc = App.newDocument("ThumbFitSet")
+objs = []
+for di, d in enumerate(DEPTH):
+    for si, s in enumerate(SOCK):
+        shp = cap(s, d, si, di)
+        assert shp.isValid() and len(shp.Solids) == 1, (s, d)
+        shp.translate(V(si * PITCH, di * PITCH, 0))
+        o = doc.addObject("Part::Feature", "Thumb_S%.2f_D%.1f" % (s, d))
+        o.Shape = shp
+        objs.append(o)
+doc.recompute()
+
+here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+out = os.path.join(here, "WetGregCase-ThumbpieceFitSet.3mf")
+Mesh.export(objs, out)
+print("wrote %d caps -> %s" % (len(objs), out))
+for o in objs:
+    print("  ", o.Name)

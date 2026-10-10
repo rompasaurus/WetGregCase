@@ -1,0 +1,260 @@
+"""Thumbpiece style set: 20 thumb caps (shape x height x top/texture).
+
+Companion to thumbpiece_variants.FCMacro (the socket fit sweep). Every cap here uses
+the same socket (SOCK/DEPTH below) so the styles compare fairly; once the fit set picks
+a winner, set SOCK/DEPTH to it and re-run. To tweak one cap, edit its DESIGNS row and
+re-run (or pass ONLY = [id, ...] to rebuild just those).
+
+Fit to the case (from the KiCad STEP + wetgreg_case.FCMacro):
+  * joystick stem: 3.2 mm square (nominal); tip 0.84 mm inside the case outer face
+    (the STEP says 3.84, but the first prints stood 3 mm too tall)
+  * case hole: 12.1 mm -> the neck through it is NECK_D = 9.0
+  * anything wider than the neck sits OUTSIDE the case: a 45 deg cone starts HEAD_GAP
+    above the face and flares out, so it clears the face when the stick tilts/presses,
+    and it prints without supports. Widest part 15 mm.
+
+Styles
+  flush : straight 9.0 cap, top `prot` above the case face
+  head  : mushroom - 45 deg cone, then a straight `edge`-thick rim at head_d
+  flare : bloomed base - 45 deg cone out to base_d, then a concave trumpet sweep in to
+          top_d over flare_h (tulip / bell look)
+Tops: dish (concave, top_h deep) | dome (convex, top_h high) | flat
+Textures: rings, radial, hatch, bumps, dimples, crater (raised lip + centre nub), knurl
+
+Print socket-down (as exported): thumb surface + textures face up; the socket mouth
+chamfer absorbs the first-layer squish.
+
+Run:  freecadcmd freecad/thumbpiece_styles.FCMacro
+Out:  freecad/WetGregCase-ThumbpieceStyleSet.3mf      all 20 on one plate
+      freecad/thumbpieces/ThumbNN_*.3mf               one per cap (name = dimensions)
+      exports/thumbpieces/ThumbNN_*.step              one per cap (for CAD edits)
+      freecad/thumbpieces/DIMENSIONS.md               full dimension table
+"""
+import os, math
+import FreeCAD as App, Part, Mesh
+
+V = App.Vector
+SOCK, DEPTH = 3.85, 3.5      # socket square / depth (3.70 printed too tight, 4.00 too loose)
+CHAMF = 0.3                  # socket mouth lead-in
+TIP_IN = 0.84                # stem tip sits this far inside the case outer face (STEP says
+                             # 3.84; printed caps stood 3 mm too tall, so -3 mm)
+NECK_D = 9.0                 # through the 12.1 mm case hole
+HEAD_GAP = 0.3               # cone starts this far above the case face (press travel)
+FACE = DEPTH + TIP_IN        # local z of the case outer face (z=0 = socket mouth, on the bed)
+ONLY = None                  # e.g. [17, 18] to rebuild just those caps
+
+F, H, B = "flush", "head", "flare"
+# style  : flush -> d=cap dia,  p=top height above case face
+#          head  -> d=head dia, e=rim thickness
+#          flare -> d=base dia, t=top dia, fh=sweep height, e=base rim thickness
+DESIGNS = [
+    dict(id=1,  style=F, d=9.0,  p=0.6, top="dish", th=0.5),               # low, near-flush
+    dict(id=2,  style=F, d=9.0,  p=1.5, top="dish", th=1.0),               # medium, deeper dish
+    dict(id=3,  style=F, d=9.0,  p=1.2, top="dome", th=0.9),               # convex button
+    dict(id=4,  style=F, d=9.0,  p=1.5, top="dish", th=0.8, tex="rings"),
+    dict(id=5,  style=F, d=9.0,  p=1.5, top="flat", th=0,   tex="bumps"),
+    dict(id=6,  style=H, d=11.0, e=0.8, top="dish", th=0.6),               # thin rim
+    dict(id=7,  style=H, d=11.0, e=0.8, top="dome", th=0.8),
+    dict(id=8,  style=H, d=11.0, e=1.0, top="dish", th=0.7, tex="radial"),
+    dict(id=9,  style=H, d=13.0, e=0.8, top="dish", th=0.7),               # wide + thin
+    dict(id=10, style=H, d=13.0, e=1.2, top="dish", th=1.4),               # deep scoop
+    dict(id=11, style=H, d=13.0, e=1.0, top="dish", th=0.8, tex="rings"),
+    dict(id=12, style=H, d=13.0, e=1.0, top="flat", th=0,   tex="hatch"),
+    dict(id=13, style=H, d=13.0, e=0.8, top="dish", th=0.8, tex="crater"),
+    dict(id=14, style=H, d=13.0, e=1.2, top="dish", th=0.8, tex="knurl"),
+    dict(id=15, style=H, d=15.0, e=0.8, top="dish", th=1.0),               # widest, thin
+    dict(id=16, style=H, d=15.0, e=1.0, top="flat", th=0,   tex="bumps"),
+    dict(id=17, style=B, d=14.0, t=9.0,  fh=2.5, e=0.5, top="dish", th=0.7),   # bell
+    dict(id=18, style=B, d=15.0, t=11.0, fh=2.0, e=0.5, top="dish", th=1.0, tex="dimples"),
+    dict(id=19, style=B, d=13.0, t=8.0,  fh=3.0, e=0.5, top="dome", th=0.8),   # tall tulip
+    dict(id=20, style=B, d=15.0, t=12.0, fh=1.6, e=0.5, top="dish", th=0.9, tex="crater"),
+]
+PITCH = 19.0
+
+def sph_R(r, h):                      # sphere radius for a cap of radius r, height h
+    return (r * r + h * h) / (2 * h)
+
+class Top:
+    """Thumb surface: surface z at radius rho, and a region `t` deep under the surface."""
+    def __init__(self, kind, z, r, h):
+        self.kind, self.z, self.r, self.h = kind, z, r, h
+        if kind in ("dish", "dome"):
+            self.R = sph_R(r, h)
+            self.zc = z + self.R - h if kind == "dish" else z + h - self.R
+    def surf(self, rho):
+        if self.kind == "flat":
+            return self.z
+        s = math.sqrt(self.R ** 2 - rho ** 2)
+        return self.zc - s if self.kind == "dish" else self.zc + s
+    def band(self, t):
+        if self.kind == "flat":
+            return Part.makeCylinder(self.r + 2, t + 5, V(0, 0, self.z - t))
+        if self.kind == "dish":
+            return Part.makeSphere(self.R + t, V(0, 0, self.zc))
+        big = Part.makeCylinder(self.r + 2, self.h + t + 5, V(0, 0, self.z - t))
+        return big.cut(Part.makeSphere(self.R - t, V(0, 0, self.zc)))
+
+def annulus(r0, r1, z0, h):
+    a = Part.makeCylinder(r1, h, V(0, 0, z0))
+    return a.cut(Part.makeCylinder(r0, h, V(0, 0, z0))) if r0 > 0 else a
+
+def hexpts(rmax, pitch):
+    pts, n = [], int(rmax / pitch) + 2
+    for j in range(-n, n + 1):
+        for i in range(-n, n + 1):
+            x, y = (i + (j % 2) * 0.5) * pitch, j * pitch * math.sqrt(3) / 2
+            if math.hypot(x, y) <= rmax:
+                pts.append((x, y))
+    return pts
+
+def revolve(pts_rz, curve=None):
+    """Solid of revolution from an (r, z) outline on the axis. `curve` = (i, pts) swaps
+    segment i for a B-spline through pts."""
+    edges = []
+    P = [V(r, 0, z) for r, z in pts_rz]
+    for i in range(len(P)):
+        a, b = P[i], P[(i + 1) % len(P)]
+        if curve and curve[0] == i:
+            bs = Part.BSplineCurve(); bs.interpolate([V(r, 0, z) for r, z in curve[1]])
+            edges.append(bs.toShape())
+        elif (a - b).Length > 1e-9:
+            edges.append(Part.LineSegment(a, b).toShape())
+    face = Part.Face(Part.Wire(edges))
+    return face.revolve(V(0, 0, 0), V(0, 0, 1), 360)
+
+def build(dz):
+    nr = NECK_D / 2
+    st, kind, th, tex = dz["style"], dz["top"], dz["th"], dz.get("tex")
+    zc0 = FACE + HEAD_GAP
+    if st == F:
+        r = dz["d"] / 2
+        ztop = FACE + dz["p"]
+        body = Part.makeCylinder(r, ztop)
+        rim_z0, widest = ztop - 1, dz["d"]
+    elif st == H:
+        r = dz["d"] / 2
+        zc1 = zc0 + (r - nr)                               # 45 deg cone
+        ztop = zc1 + dz["e"]
+        body = revolve([(0, 0), (nr, 0), (nr, zc0), (r, zc1), (r, ztop), (0, ztop)])
+        rim_z0, widest = zc1, dz["d"]
+    else:                                                  # flare / bloomed base
+        rb, r = dz["d"] / 2, dz["t"] / 2
+        zc1 = zc0 + (rb - nr)
+        zb = zc1 + dz["e"]                                 # top of the base rim
+        ztop = zb + dz["fh"]
+        zs = ztop - 0.6                                    # straight 0.6 band under the top
+        sweep = [(rb + (r - rb) * math.sin(u * math.pi / 2), zb + (zs - zb) * (1 - math.cos(u * math.pi / 2)))
+                 for u in [k / 8 for k in range(9)]]   # concave trumpet (quarter arc)
+        body = revolve([(0, 0), (nr, 0), (nr, zc0), (rb, zc1), (rb, zb), (r, zs), (r, ztop), (0, ztop)],
+                       curve=(4, sweep))
+        rim_z0, widest = ztop - 0.6, dz["d"]
+    top = Top(kind, ztop, r, th) if th else Top("flat", ztop, r, 0)
+    if kind == "dish":
+        body = body.cut(Part.makeSphere(top.R, V(0, 0, top.zc)))
+    elif kind == "dome":
+        body = body.fuse(Part.makeSphere(top.R, V(0, 0, top.zc))
+                         .common(Part.makeCylinder(r, th + 1, V(0, 0, ztop))))
+
+    adds, cuts = [], []
+    if tex == "rings":
+        for r0 in [1.2 + i * 1.2 for i in range(int((r - 1.6) / 1.2))]:
+            cuts.append(annulus(r0, r0 + 0.5, ztop - 3, 6).common(top.band(0.4)))
+    elif tex == "radial":
+        for k in range(12):
+            b = Part.makeBox(r - 0.7 - 1.4, 0.5, 6, V(1.4, -0.25, ztop - 3))   # stop short of the rim
+            b.rotate(V(0, 0, 0), V(0, 0, 1), k * 30)
+            cuts.append(b.common(top.band(0.4)))
+    elif tex == "hatch":
+        n = int(r / 1.5) + 1
+        for i in range(-n, n + 1):
+            cuts.append(Part.makeBox(0.5, 2 * r + 2, 1, V(i * 1.5 - 0.25, -r - 1, ztop - 0.4)))
+            cuts.append(Part.makeBox(2 * r + 2, 0.5, 1, V(-r - 1, i * 1.5 - 0.25, ztop - 0.4)))
+    elif tex == "bumps":
+        for x, y in hexpts(r - 0.9, 1.7):
+            adds.append(Part.makeSphere(0.55, V(x, y, top.surf(math.hypot(x, y)) - 0.1)))
+    elif tex == "dimples":
+        for x, y in hexpts(r - 1.0, 1.8):
+            cuts.append(Part.makeSphere(0.6, V(x, y, top.surf(math.hypot(x, y)) + 0.25)))
+    elif tex == "crater":
+        adds.append(annulus(r - 0.9, r, ztop - 0.1, 0.7))               # raised lip
+        adds.append(Part.makeSphere(1.0, V(0, 0, top.surf(0) - 0.45)))  # centre nub
+    elif tex == "knurl":
+        n = int(2 * math.pi * r / 1.1)
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            cuts.append(Part.makeCylinder(0.35, ztop - rim_z0 + th + 2,
+                        V((r + 0.12) * math.cos(a), (r + 0.12) * math.sin(a), rim_z0)))
+    if adds:
+        body = body.fuse(adds)
+    if cuts:
+        body = body.cut(cuts)
+
+    # socket + mouth lead-in (mouth at z=0, on the bed)
+    s, m = SOCK, SOCK + 2 * CHAMF
+    sq = lambda w, z: Part.makePolygon([V(-w/2, -w/2, z), V(w/2, -w/2, z), V(w/2, w/2, z),
+                                        V(-w/2, w/2, z), V(-w/2, -w/2, z)])
+    sock = Part.makeBox(s, s, DEPTH + 0.1, V(-s/2, -s/2, -0.1))
+    lead = Part.makeLoft([sq(m, -0.01), sq(s, CHAMF)], True)
+    body = body.cut(sock.fuse(lead)).removeSplitter()
+    bb = body.BoundBox
+    # thinnest material between the socket floor and the thumb surface
+    floor = min(top.surf(0), top.surf(s / math.sqrt(2))) - DEPTH \
+        - (0.4 if tex in ("rings", "radial", "hatch", "dimples") else 0)
+    return body, dict(floor=floor, widest=widest, thumb_d=2 * r, stick_out=bb.ZMax - FACE,
+                      height=bb.ZLength)
+
+def name(dz, info):
+    st = dz["style"]
+    if st == F:   shape = "flush%.1f" % dz["d"]
+    elif st == H: shape = "head%.0f-rim%.1f" % (dz["d"], dz["e"])
+    else:         shape = "flare%.0fto%.0f" % (dz["d"], dz["t"])
+    top = dz["top"] + ("%.1f" % dz["th"] if dz["th"] else "")
+    tex = "_" + dz["tex"] if dz.get("tex") else ""
+    return "Thumb%02d_%s_out%.1f_%s%s_S%.2fxD%.1f" % (
+        dz["id"], shape, info["stick_out"], top, tex, SOCK, DEPTH)
+
+here = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+proj = os.path.dirname(here)
+d3mf = os.path.join(here, "thumbpieces"); dstep = os.path.join(proj, "exports", "thumbpieces")
+os.makedirs(d3mf, exist_ok=True); os.makedirs(dstep, exist_ok=True)
+
+doc = App.newDocument("ThumbStyleSet")
+objs, rows = [], []
+for i, dz in enumerate(DESIGNS):
+    if ONLY and dz["id"] not in ONLY:
+        continue
+    shp, info = build(dz)
+    assert shp.isValid() and len(shp.Solids) == 1 and info["height"] > FACE, dz["id"]
+    nm = name(dz, info)
+    one = doc.addObject("Part::Feature", "single_%02d" % dz["id"]); one.Shape = shp
+    Mesh.export([one], os.path.join(d3mf, nm + ".3mf"))
+    shp.exportStep(os.path.join(dstep, nm + ".step"))
+    doc.removeObject(one.Name)
+    placed = shp.copy(); placed.translate(V((i % 5) * PITCH, -(i // 5) * PITCH, 0))
+    o = doc.addObject("Part::Feature", "Thumb%02d" % dz["id"]); o.Shape = placed; objs.append(o)
+    rows.append((dz, info, nm))
+    print("  %-55s floor over socket %.2f" % (nm, info["floor"]))
+
+if not ONLY:
+    Mesh.export(objs, os.path.join(here, "WetGregCase-ThumbpieceStyleSet.3mf"))
+    with open(os.path.join(d3mf, "DIMENSIONS.md"), "w") as f:
+        f.write("# Thumbpiece style set\n\n"
+                "Generated by `freecad/thumbpiece_styles.FCMacro` (edit the DESIGNS row, re-run).\n\n"
+                "All caps: socket **%.2f mm square x %.1f mm deep**, %.1f mm lead-in chamfer; neck "
+                "**%.1f mm** through the 12.1 mm case hole; wide parts start %.1f mm above the case "
+                "face on a 45 deg cone. Print socket-down (as exported).\n\n"
+                "Plate layout (`WetGregCase-ThumbpieceStyleSet.3mf`): 5 per row, #1 top-left, "
+                "reading left-to-right.\n\n"
+                "| # | style | widest | thumb surface dia | sticks out of case | total height | top | texture | file |\n"
+                "|---|---|---|---|---|---|---|---|---|\n"
+                % (SOCK, DEPTH, CHAMF, NECK_D, HEAD_GAP))
+        for dz, info, nm in rows:
+            st = dz["style"]
+            if st == F:   desc = "flush"
+            elif st == H: desc = "mushroom head, %.1f rim" % dz["e"]
+            else:         desc = "bloomed base %.0f -> %.0f top over %.1f" % (dz["d"], dz["t"], dz["fh"])
+            top = dz["top"] + (" %.1f" % dz["th"] if dz["th"] else "")
+            f.write("| %d | %s | %.1f | %.1f | %.1f | %.1f | %s | %s | `%s` |\n" % (
+                dz["id"], desc, info["widest"], info["thumb_d"], info["stick_out"],
+                info["height"], top, dz.get("tex") or "smooth", nm))
+    print("wrote %d caps" % len(objs))

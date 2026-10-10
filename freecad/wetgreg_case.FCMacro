@@ -53,11 +53,11 @@ PARAMS = [
     ("screen_top", 11.83,"Front-cover depth so the window inner meets the real screen front (-9.43): 13mm screen-to-PCB-backside stack. = wall - (board_rest_z + board_t - 13)."),
     ("screen_cal", -2.89,"Screen Z calibration: STEP model placed the screen 2.89mm too close; this shifts it out to the real 13mm top-of-screen-to-PCB-backside stack (- = away from board)"),
     ("screen_back", -5.30,"Real screen back face Z (+0.3 clear): rib is carved away below this in the screen footprint so it clears the screen; rib above it supports the PCB"),
-    ("front_curve",6.00, "Aggressive front-edge curve radius"),
+    ("front_curve",6.00, "Front-edge curve radius (was 6.0; halved for a boxier look, matches back_curve)"),
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
     ("back_above", 9.10, "Backplate depth above the seam (net -1mm from the Pico-block max: removes most dead space but keeps 1mm headroom)."),
-    ("back_curve", 6.00, "Back-edge curve radius (matches the front)"),
+    ("back_curve", 5.00, "Back-edge curve radius (was 6.0; halved for a boxier look, matches front_curve)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
@@ -101,7 +101,7 @@ PARAMS = [
     # --- Screen window (sized inside the 4 M2 screw holes) ---
     ("win_x0",    11.60, "Window X min (extended 1mm toward the Y axis)"),
     ("win_x1",    63.60, "Window X max (long edge shaved 2mm; long edges 4mm shorter)"),
-    ("win_y0",     7.10, "Window Y min (1mm shy of screen PCB)"),
+    ("win_y0",     8.10, "Window Y min (+1mm in: centres the screen in Y)"),
     ("win_y1",    35.10, "Window Y max (1mm shy of screen PCB)"),
     # --- USB-C opening (+X) ---
     ("usb_cy",    21.00, "USB-C centre Y"),
@@ -110,25 +110,18 @@ PARAMS = [
     ("usb_z1",     7.20, "USB-C opening Z top (connector now reaches ~7.0 after board_rest_z; keep above that, below cap top 9.8)."),
     ("usb_r",      1.00, "USB-C opening corner radius"),
     ("usb_lip_h",  2.10, "Front-cover outer lip height at the USB notch = bead top: the lip meets the top of the bead (connector now sits above the bead)."),
-    # --- Power slide switch MSK12C02 (SPDT 8x2.8x1.4) on -Y + printed slider ---
+    # --- Power slide switch MSK12C02 (SPDT 8x2.8x1.4) on -Y: NO external opening/slider ---
+    # A blind pocket from the inside clears the actuator; the outer -Y face stays closed
+    # by a single printed skin (sw_skin), so the board still drops flush onto the shelf.
     ("sw_cx",     50.55, "Switch actuator centre X (mid-travel)"),
-    ("sw_act_y",  -1.80, "Actuator face Y (toward -Y; ~0.9mm inside the -2.7 outer wall)"),
-    ("sw_act_z0",  1.06, "Actuator Z bottom (from model)"),
-    ("sw_act_z1",  3.07, "Actuator Z top (from model)"),
-    ("sw_travel",  1.50, "MSK12C02 actuator travel X (ASSUMED - confirm w/ datasheet)"),
-    ("sw_knob_w",  1.20, "Actuator knob width X for the grip pocket (ASSUMED)"),
-    ("sw_knob_proj",0.60, "Actuator knob protrusion out the -Y face (ASSUMED)"),
-    ("sld_neck_w", 3.00, "Slider neck width X (rides in the slot)"),
-    ("sld_tab_w",  9.00, "Slider thumb-tab width X (big grip)"),
-    ("sld_tab_t",  1.20, "Slider thumb-tab protrusion outside the wall (Y) - kept small/flush"),
-    ("sld_z0",     0.70, "Slider/slot Z bottom (kept >0 to clear the front cover)"),
-    ("sld_z1",     5.20, "Slider thumb-tab Z top"),
-    ("sld_slot_z1",3.60, "Slot Z top (neck window; exposes the actuator)"),
-    ("sld_fit",    0.30, "Slider-to-slot sliding clearance"),
+    ("sw_pocket_w", 5.10, "Switch pocket width X (actuator + full travel + clearance; = old slot)"),
+    ("sw_pocket_z0",0.70, "Switch pocket Z bottom (above board rest)"),
+    ("sw_pocket_z1",3.60, "Switch pocket Z top (above board rest)"),
+    ("sw_skin",     1.00, "Outer -Y skin left over the switch pocket (1.0mm: 0.4 was too thin, the slicer dropped it and left a hole)"),
     # --- Joystick / boss / thumbpiece ---
     ("joy_cx",    81.55, "Joystick centre X"),
     ("joy_cy",    21.30, "Joystick centre Y"),
-    ("joy_hole_d",12.00, "Joystick hole diameter"),
+    ("joy_hole_d",12.10, "Joystick hole diameter (+0.1mm)"),
     ("joy_boss_d",20.00, "Joystick boss outer diameter"),
     ("joy_pad_th", 5.00, "Joystick boss thickness (solar-connector room)"),
     ("thumb_od",   9.50, "Thumb cap outer diameter (was 11.00; -1.5mm for fit tolerance)"),
@@ -457,11 +450,12 @@ def build_front_cover():
     #     frame strips at the screen's SHORTER (+/-X) edges, coming inward to the window,
     #     so the e-ink board edges sit clear of the inner face.
     scc = 0.40
+    # each strip is pulled back 1mm from its window-facing edge (more solid frame by the window)
     sub_box(body, "Cut_FC_ScrFace_Xlo", sx0, sy0, front_floor_inner-scc,
-            PV["win_x0"]-sx0, sy1-sy0, scc)
+            (PV["win_x0"]-1.0)-sx0, sy1-sy0, scc)
     scc_xhi = scc + 0.30   # +0.3mm deeper carve on the +X frame strip (screen edge fit)
-    sub_box(body, "Cut_FC_ScrFace_Xhi", PV["win_x1"], sy0, front_floor_inner-scc_xhi,
-            sx1-PV["win_x1"], sy1-sy0, scc_xhi)
+    sub_box(body, "Cut_FC_ScrFace_Xhi", PV["win_x1"]+1.0, sy0, front_floor_inner-scc_xhi,
+            sx1-(PV["win_x1"]+1.0), sy1-sy0, scc_xhi)
     # 7. round joystick boss (5 mm, annular fill around the hole)
     add_cyl(body, "Boss_FC_Joy", PV["joy_cx"], PV["joy_cy"], front_outer_z,
             PV["joy_boss_d"]/2, PV["joy_pad_th"])
@@ -541,13 +535,17 @@ def build_backplate():
     sub_box(body, "Cut_BP_USB", BW+C-PV["back_curve"]-1.0, PV["usb_cy"]-PV["usb_w"]/2, PV["usb_z0"],
             W+C+PV["back_curve"]+3.0, PV["usb_w"], PV["usb_z1"]-PV["usb_z0"],
             Wd=SP("usb_w"), H=f"{SP('usb_z1')} - {SP('usb_z0')}")
-    # 8. power-switch slot (-Y)
-    # power-switch slider slot (-Y): a window the slider neck rides in, exposing the
-    # MSK12C02 actuator. X = neck + travel + clearance; Z = sld_z0..sld_slot_z1.
-    slot_xw = PV["sld_neck_w"] + PV["sw_travel"] + 2*PV["sld_fit"]
-    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-slot_xw/2, -(C+W+EY)-1.0, PV["sld_z0"]+pcb_rest_z,
-            slot_xw, W+2.0+EY, PV["sld_slot_z1"]-PV["sld_z0"],
-            H=f"{SP('sld_slot_z1')} - {SP('sld_z0')}")
+    # 8. power-switch pocket (-Y): BLIND, cut from the inside out to sw_skin short of the
+    #    outer face, so the MSK12C02 actuator has room but no hole reaches the outside.
+    pk_w = PV["sw_pocket_w"]; pk_y0 = -(C+W+EY) + PV["sw_skin"]
+    sub_box(body, "Cut_BP_Switch", PV["sw_cx"]-pk_w/2, pk_y0, PV["sw_pocket_z0"]+pcb_rest_z,
+            pk_w, -pk_y0 - C + 0.5, PV["sw_pocket_z1"]-PV["sw_pocket_z0"],
+            L=SP("sw_pocket_w"), H=f"{SP('sw_pocket_z1')} - {SP('sw_pocket_z0')}")
+    #    the actuator knob tip reaches y=-1.8 (0.1 into the 1mm skin): a shallow groove
+    #    along its full travel (knob x 50.75..52.05 at one end, mirrored about sw_cx)
+    #    leaves 0.75mm of skin there only. Knob z 4.36..5.06 (+0.15 clear).
+    sub_box(body, "Cut_BP_SwitchKnob", PV["sw_cx"]-1.75, pk_y0-0.25, pcb_rest_z+2.10,
+            3.5, 0.3, 1.0)
     # 9. perimeter SUPPORT SHELF: steps in over the board's outer edge from the board
     #    top up to the inner ceiling, so the board is clamped between the front rib
     #    (below) and this shelf (above). Open centre clears the Pico + accel/LEDs/caps.
@@ -557,7 +555,7 @@ def build_backplate():
     for i, (hx, hy) in enumerate(EINK_HOLES):
         sub_cyl(body, f"Cut_BP_Standoff{i}", hx, hy, board_top_z-0.5, PV["standoff_clr"], sh_h+1.0)
     # gap only the INNER shelf for the edge parts (start at the wall inner, never cut
-    # the side wall itself - the USB opening / switch slot already pierce the wall).
+    # the side wall itself - the USB opening already pierces the wall).
     # USB-C (+X): remove the shelf band (wall inner -> reach inward)
     ux1 = BW + C + 0.1                                  # just inside the +X wall inner
     sub_box(body, "Cut_BP_ShelfUSB", ux1-(PV["back_shelf_reach"]+0.6), PV["usb_cy"]-PV["usb_w"]/2-0.6,
@@ -604,37 +602,6 @@ def build_thumbpiece():
     s = PV["thumb_sock"]
     top = bot + PV["thumb_h"]
     sub_box(body, "Thumb_Socket", cx-s/2, cy-s/2, top-PV["thumb_sock_d"], s, s, PV["thumb_sock_d"]+0.1)
-    return body
-
-# =====================================================================
-# SWITCH SLIDER  (printed actuator for the MSK12C02; rides the -Y slot, grips the knob)
-# =====================================================================
-def build_switch_slider():
-    body = DOCO.addObject("PartDesign::Body", "SwitchSlider")
-    cx = PV["sw_cx"]; ow = -(C + W + EY); fit = PV["sld_fit"]; rz = pcb_rest_z   # ow tracks the widened -Y wall
-    z0 = PV["sld_z0"] + rz                                  # tracks the raised switch
-    # thin thumb tab OUTSIDE the -Y wall, kept flush-ish to the side (small protrusion)
-    tab = add_box(body, "Sld_Tab", cx-PV["sld_tab_w"]/2, ow-PV["sld_tab_t"], z0,
-                  PV["sld_tab_w"], PV["sld_tab_t"], PV["sld_z1"]-PV["sld_z0"])
-    # round/curve the outer tab edges so it follows the case (no sharp block)
-    try:
-        re = [f"Edge{i+1}" for i,e in enumerate(tab.Shape.Edges)
-              if all(abs(v.Point.y-(ow-PV["sld_tab_t"]))<1e-3 for v in e.Vertexes)]
-        if re:
-            ch = body.newObject("PartDesign::Fillet", "Sld_TabRound")
-            ch.Base = (tab, re); ch.Radius = min(PV["sld_tab_t"]*0.9, 0.9)
-            DOCO.recompute()
-            if not ch.Shape.isValid(): body.removeObject(ch); DOCO.recompute()
-    except Exception:
-        pass
-    # neck THROUGH the slot, reaching the actuator face (rides with sld_fit play)
-    neck_dy = PV["sw_act_y"] - ow
-    add_box(body, "Sld_Neck", cx-PV["sld_neck_w"]/2, ow, z0+fit,
-            PV["sld_neck_w"], neck_dy, (PV["sld_slot_z1"]-PV["sld_z0"])-2*fit)
-    # grip pocket straddling the actuator knob in X -> sliding the tab slides the switch
-    kp_w = PV["sw_knob_w"] + fit
-    sub_box(body, "Sld_Grip", cx-kp_w/2, PV["sw_act_y"]-PV["sw_knob_proj"], PV["sw_act_z0"]+rz-0.3,
-            kp_w, PV["sw_knob_proj"]+0.3, (PV["sw_act_z1"]-PV["sw_act_z0"])+0.6)
     return body
 
 # =====================================================================
@@ -768,7 +735,6 @@ def import_assembly():
 bp = build_backplate()
 fc = build_front_cover()
 tp = build_thumbpiece()
-sld = build_switch_slider()
 clipL = build_battery_clip(-1, "BatteryClipL")
 clipR = build_battery_clip(+1, "BatteryClipR")
 asm = import_assembly()
@@ -790,7 +756,7 @@ DOCO.recompute()
 
 if GUI:
     for b, col in [(bp,(0.30,0.55,0.85)), (fc,(0.85,0.55,0.30)), (tp,(0.15,0.15,0.18)),
-                   (sld,(0.20,0.70,0.40)), (clipL,(0.85,0.20,0.30)), (clipR,(0.85,0.20,0.30))]:
+                   (clipL,(0.85,0.20,0.30)), (clipR,(0.85,0.20,0.30))]:
         try: b.ViewObject.ShapeColor = col
         except Exception: pass
 
@@ -803,14 +769,13 @@ try:
     Part.export([bp], os.path.join(exp, "WetGregCase_BackPlate.step"))
     Part.export([fc], os.path.join(exp, "WetGregCase_FrontCover.step"))
     Part.export([tp], os.path.join(exp, "WetGregCase_Thumbpiece.step"))
-    Part.export([sld], os.path.join(exp, "WetGregCase_SwitchSlider.step"))
     Part.export([clipL], os.path.join(exp, "WetGregCase_BatteryClipL.step"))
     Part.export([clipR], os.path.join(exp, "WetGregCase_BatteryClipR.step"))
 except Exception as e:
     App.Console.PrintWarning("STEP export skipped: %s\n" % e)
 try:                                   # print-ready 3MF meshes (regenerated each run)
     import Mesh
-    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece"), (sld, "SwitchSlider"),
+    for o, nm in [(fc, "FrontCover"), (bp, "BackPlate"), (tp, "Thumbpiece"),
                   (clipL, "BatteryClipL"), (clipR, "BatteryClipR")]:
         Mesh.export([o], os.path.join(here, "WetGregCase-%s.3mf" % nm))
 except Exception as e:
@@ -824,7 +789,6 @@ print("WetGregCase (PartDesign + Parameters spreadsheet)")
 print("  BackPlate :", chk(bp))
 print("  FrontCover:", chk(fc))
 print("  Thumbpiece:", chk(tp))
-print("  SwitchSldr:", chk(sld))
 print("  BatClip L :", chk(clipL))
 print("  BatClip R :", chk(clipR))
 print("  Overall Z : %.2f .. %.2f (%.2f mm)" % (front_outer_z, base_top_z, base_top_z-front_outer_z))
