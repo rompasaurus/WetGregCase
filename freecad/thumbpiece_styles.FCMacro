@@ -40,6 +40,8 @@ TIP_IN = 0.84                # stem tip sits this far inside the case outer face
                              # 3.84; printed caps stood 3 mm too tall, so -3 mm)
 NECK_D = 9.0                 # through the 12.1 mm case hole
 HEAD_GAP = 0.3               # cone starts this far above the case face (press travel)
+LIFT = 2.0                   # every cap stands this much taller out of the case: flush tops
+                             # rise by LIFT, heads/flares get a LIFT-longer neck (socket unchanged)
 FACE = DEPTH + TIP_IN        # local z of the case outer face (z=0 = socket mouth, on the bed)
 ONLY = None                  # e.g. [17, 18] to rebuild just those caps
 
@@ -125,10 +127,10 @@ def revolve(pts_rz, curve=None):
 def build(dz):
     nr = NECK_D / 2
     st, kind, th, tex = dz["style"], dz["top"], dz["th"], dz.get("tex")
-    zc0 = FACE + HEAD_GAP
+    zc0 = FACE + HEAD_GAP + LIFT
     if st == F:
         r = dz["d"] / 2
-        ztop = FACE + dz["p"]
+        ztop = FACE + dz["p"] + LIFT
         body = Part.makeCylinder(r, ztop)
         rim_z0, widest = ztop - 1, dz["d"]
     elif st == H:

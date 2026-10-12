@@ -57,7 +57,8 @@ PARAMS = [
     # --- Seam / backplate (deep cover that clips onto the front lid) ---
     ("ftop",       0.00, "Front-plate top / seam Z (= PCB rest / mating face)"),
     ("back_above", 9.10, "Backplate depth above the seam (net -1mm from the Pico-block max: removes most dead space but keeps 1mm headroom)."),
-    ("back_curve", 5.00, "Back-edge curve radius (was 6.0; halved for a boxier look, matches front_curve)"),
+    ("back_skim",  1.00, "Skim off the OUTER back face (thinner back panel -> see through the translucent back better); inner cavity unchanged"),
+    ("back_curve", 6.00, "Back-edge curve radius (was 6.0; halved for a boxier look, matches front_curve)"),
     # --- PCB ledge inside the FRONT plate (walls come in to support the board) ---
     ("ledge_in",   2.00, "Ledge reach in from the wall (board rests on it)"),
     ("ledge_th",   1.20, "Ledge thickness"),
@@ -581,6 +582,11 @@ def build_backplate():
     inset = PV["back_shelf_reach"] + 0.5
     sub_box(body, "Cut_BP_BaseThin", IX0+inset, IY0+inset, base_top_z-W,
             (IX1-inset)-(IX0+inset), (IY1-inset)-(IY0+inset), 0.2)
+    # skim the OUTER back face down by back_skim over the whole footprint (the cap's
+    # flat top drops; the inner ceiling/shelf stay put, so only the panel thins)
+    sk_ = PV["back_skim"]
+    sub_box(body, "Cut_BP_BackSkim", OX0-1.0, OY0-1.0, base_top_z-sk_,
+            (OX1-OX0)+2.0, (OY1-OY0)+2.0, sk_+1.0)
     return body
 
 # =====================================================================
@@ -791,7 +797,7 @@ print("  FrontCover:", chk(fc))
 print("  Thumbpiece:", chk(tp))
 print("  BatClip L :", chk(clipL))
 print("  BatClip R :", chk(clipR))
-print("  Overall Z : %.2f .. %.2f (%.2f mm)" % (front_outer_z, base_top_z, base_top_z-front_outer_z))
+print("  Overall Z : %.2f .. %.2f (%.2f mm)" % (front_outer_z, base_top_z-PV["back_skim"], base_top_z-PV["back_skim"]-front_outer_z))
 print("  Case Y    : %.2f .. %.2f (%.2f mm, +%.1f total)" % (OY0, OY1, OY1-OY0, 2*EY))
 print("="*62)
 

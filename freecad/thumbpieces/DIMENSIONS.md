@@ -8,23 +8,23 @@ Plate layout (`WetGregCase-ThumbpieceStyleSet.3mf`): 5 per row, #1 top-left, rea
 
 | # | style | widest | thumb surface dia | sticks out of case | total height | top | texture | file |
 |---|---|---|---|---|---|---|---|---|
-| 1 | flush | 9.0 | 9.0 | 0.6 | 5.0 | dish 0.5 | smooth | `Thumb01_flush9.0_out0.6_dish0.5_S3.85xD3.5` |
-| 2 | flush | 9.0 | 9.0 | 1.5 | 5.8 | dish 1.0 | smooth | `Thumb02_flush9.0_out1.5_dish1.0_S3.85xD3.5` |
-| 3 | flush | 9.0 | 9.0 | 2.1 | 6.5 | dome 0.9 | smooth | `Thumb03_flush9.0_out2.1_dome0.9_S3.85xD3.5` |
-| 4 | flush | 9.0 | 9.0 | 1.5 | 5.8 | dish 0.8 | rings | `Thumb04_flush9.0_out1.5_dish0.8_rings_S3.85xD3.5` |
-| 5 | flush | 9.0 | 9.0 | 2.0 | 6.3 | flat | bumps | `Thumb05_flush9.0_out2.0_flat_bumps_S3.85xD3.5` |
-| 6 | mushroom head, 0.8 rim | 11.0 | 11.0 | 2.1 | 6.4 | dish 0.6 | smooth | `Thumb06_head11-rim0.8_out2.1_dish0.6_S3.85xD3.5` |
-| 7 | mushroom head, 0.8 rim | 11.0 | 11.0 | 2.9 | 7.2 | dome 0.8 | smooth | `Thumb07_head11-rim0.8_out2.9_dome0.8_S3.85xD3.5` |
-| 8 | mushroom head, 1.0 rim | 11.0 | 11.0 | 2.3 | 6.7 | dish 0.7 | radial | `Thumb08_head11-rim1.0_out2.3_dish0.7_radial_S3.85xD3.5` |
-| 9 | mushroom head, 0.8 rim | 13.0 | 13.0 | 3.1 | 7.4 | dish 0.7 | smooth | `Thumb09_head13-rim0.8_out3.1_dish0.7_S3.85xD3.5` |
-| 10 | mushroom head, 1.2 rim | 13.0 | 13.0 | 3.5 | 7.8 | dish 1.4 | smooth | `Thumb10_head13-rim1.2_out3.5_dish1.4_S3.85xD3.5` |
-| 11 | mushroom head, 1.0 rim | 13.0 | 13.0 | 3.3 | 7.7 | dish 0.8 | rings | `Thumb11_head13-rim1.0_out3.3_dish0.8_rings_S3.85xD3.5` |
-| 12 | mushroom head, 1.0 rim | 13.0 | 13.0 | 3.3 | 7.6 | flat | hatch | `Thumb12_head13-rim1.0_out3.3_flat_hatch_S3.85xD3.5` |
-| 13 | mushroom head, 0.8 rim | 13.0 | 13.0 | 3.7 | 8.0 | dish 0.8 | crater | `Thumb13_head13-rim0.8_out3.7_dish0.8_crater_S3.85xD3.5` |
-| 14 | mushroom head, 1.2 rim | 13.0 | 13.0 | 3.5 | 7.8 | dish 0.8 | knurl | `Thumb14_head13-rim1.2_out3.5_dish0.8_knurl_S3.85xD3.5` |
-| 15 | mushroom head, 0.8 rim | 15.0 | 15.0 | 4.1 | 8.5 | dish 1.0 | smooth | `Thumb15_head15-rim0.8_out4.1_dish1.0_S3.85xD3.5` |
-| 16 | mushroom head, 1.0 rim | 15.0 | 15.0 | 4.8 | 9.1 | flat | bumps | `Thumb16_head15-rim1.0_out4.8_flat_bumps_S3.85xD3.5` |
-| 17 | bloomed base 14 -> 9 top over 2.5 | 14.0 | 9.0 | 5.8 | 10.2 | dish 0.7 | smooth | `Thumb17_flare14to9_out5.8_dish0.7_S3.85xD3.5` |
-| 18 | bloomed base 15 -> 11 top over 2.0 | 15.0 | 11.0 | 5.8 | 10.2 | dish 1.0 | dimples | `Thumb18_flare15to11_out5.8_dish1.0_dimples_S3.85xD3.5` |
-| 19 | bloomed base 13 -> 8 top over 3.0 | 13.0 | 8.0 | 6.6 | 11.0 | dome 0.8 | smooth | `Thumb19_flare13to8_out6.6_dome0.8_S3.85xD3.5` |
-| 20 | bloomed base 15 -> 12 top over 1.6 | 15.0 | 12.0 | 6.0 | 10.3 | dish 0.9 | crater | `Thumb20_flare15to12_out6.0_dish0.9_crater_S3.85xD3.5` |
+| 1 | flush | 9.0 | 9.0 | 2.6 | 7.0 | dish 0.5 | smooth | `Thumb01_flush9.0_out2.6_dish0.5_S3.85xD3.5` |
+| 2 | flush | 9.0 | 9.0 | 3.5 | 7.8 | dish 1.0 | smooth | `Thumb02_flush9.0_out3.5_dish1.0_S3.85xD3.5` |
+| 3 | flush | 9.0 | 9.0 | 4.1 | 8.4 | dome 0.9 | smooth | `Thumb03_flush9.0_out4.1_dome0.9_S3.85xD3.5` |
+| 4 | flush | 9.0 | 9.0 | 3.5 | 7.8 | dish 0.8 | rings | `Thumb04_flush9.0_out3.5_dish0.8_rings_S3.85xD3.5` |
+| 5 | flush | 9.0 | 9.0 | 4.0 | 8.3 | flat | bumps | `Thumb05_flush9.0_out4.0_flat_bumps_S3.85xD3.5` |
+| 6 | mushroom head, 0.8 rim | 11.0 | 11.0 | 4.1 | 8.4 | dish 0.6 | smooth | `Thumb06_head11-rim0.8_out4.1_dish0.6_S3.85xD3.5` |
+| 7 | mushroom head, 0.8 rim | 11.0 | 11.0 | 4.9 | 9.2 | dome 0.8 | smooth | `Thumb07_head11-rim0.8_out4.9_dome0.8_S3.85xD3.5` |
+| 8 | mushroom head, 1.0 rim | 11.0 | 11.0 | 4.3 | 8.7 | dish 0.7 | radial | `Thumb08_head11-rim1.0_out4.3_dish0.7_radial_S3.85xD3.5` |
+| 9 | mushroom head, 0.8 rim | 13.0 | 13.0 | 5.1 | 9.5 | dish 0.7 | smooth | `Thumb09_head13-rim0.8_out5.1_dish0.7_S3.85xD3.5` |
+| 10 | mushroom head, 1.2 rim | 13.0 | 13.0 | 5.5 | 9.8 | dish 1.4 | smooth | `Thumb10_head13-rim1.2_out5.5_dish1.4_S3.85xD3.5` |
+| 11 | mushroom head, 1.0 rim | 13.0 | 13.0 | 5.3 | 9.7 | dish 0.8 | rings | `Thumb11_head13-rim1.0_out5.3_dish0.8_rings_S3.85xD3.5` |
+| 12 | mushroom head, 1.0 rim | 13.0 | 13.0 | 5.3 | 9.7 | flat | hatch | `Thumb12_head13-rim1.0_out5.3_flat_hatch_S3.85xD3.5` |
+| 13 | mushroom head, 0.8 rim | 13.0 | 13.0 | 5.7 | 10.1 | dish 0.8 | crater | `Thumb13_head13-rim0.8_out5.7_dish0.8_crater_S3.85xD3.5` |
+| 14 | mushroom head, 1.2 rim | 13.0 | 13.0 | 5.5 | 9.8 | dish 0.8 | knurl | `Thumb14_head13-rim1.2_out5.5_dish0.8_knurl_S3.85xD3.5` |
+| 15 | mushroom head, 0.8 rim | 15.0 | 15.0 | 6.1 | 10.5 | dish 1.0 | smooth | `Thumb15_head15-rim0.8_out6.1_dish1.0_S3.85xD3.5` |
+| 16 | mushroom head, 1.0 rim | 15.0 | 15.0 | 6.8 | 11.1 | flat | bumps | `Thumb16_head15-rim1.0_out6.8_flat_bumps_S3.85xD3.5` |
+| 17 | bloomed base 14 -> 9 top over 2.5 | 14.0 | 9.0 | 7.8 | 12.2 | dish 0.7 | smooth | `Thumb17_flare14to9_out7.8_dish0.7_S3.85xD3.5` |
+| 18 | bloomed base 15 -> 11 top over 2.0 | 15.0 | 11.0 | 7.8 | 12.2 | dish 1.0 | dimples | `Thumb18_flare15to11_out7.8_dish1.0_dimples_S3.85xD3.5` |
+| 19 | bloomed base 13 -> 8 top over 3.0 | 13.0 | 8.0 | 8.6 | 13.0 | dome 0.8 | smooth | `Thumb19_flare13to8_out8.6_dome0.8_S3.85xD3.5` |
+| 20 | bloomed base 15 -> 12 top over 1.6 | 15.0 | 12.0 | 8.0 | 12.3 | dish 0.9 | crater | `Thumb20_flare15to12_out8.0_dish0.9_crater_S3.85xD3.5` |
